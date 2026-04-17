@@ -496,25 +496,6 @@ DIP 数字员工 Web 界面
 | type | `"feishu" \| "dingding"` | 通道类型 |
 | openid | string | 通道用户 OpenID |
 
-#### 创建通道用户
-
-`POST /api/dip-studio/v1/channel-users`
-
-请求体：`application/json`
-
-| 参数 | 类型 | 是否必填 | 说明 |
-| -- | -- | -- | -- |
-| displayName | string | 是 | 通道用户显示名 |
-| channel | ChannelUserChannel | 是 | 通道信息 |
-
-响应：`201 application/json`
-
-| 参数 | 类型 | 说明 |
-| -- | -- | -- |
-| id | string | 通道用户 ID |
-| displayName | string | 通道用户显示名 |
-| channel | ChannelUserChannel | 通道信息 |
-
 #### 更新通道用户
 
 `PUT /api/dip-studio/v1/channel-users/{id}`
@@ -539,18 +520,6 @@ DIP 数字员工 Web 界面
 | id | string | 通道用户 ID |
 | displayName | string | 通道用户显示名 |
 | channel | ChannelUserChannel | 通道信息 |
-
-#### 删除通道用户
-
-`DELETE /api/dip-studio/v1/channel-users/{id}`
-
-路径参数：
-
-| 参数 | 类型 | 是否必填 | 说明 |
-| -- | -- | -- | -- |
-| id | string | 是 | 通道用户 ID |
-
-响应：`204`
 
 #### 导出通道用户 JSONL
 
