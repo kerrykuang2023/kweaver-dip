@@ -2,6 +2,11 @@
   "aiPromptInput": {
     "mentionPanelTitle": "选择数字员工",
     "mentionButton": "选择数字员工",
+    "mentionObjectButton": "提及对象",
+    "employeeMentionGroup": "我的数字员工",
+    "expandMentionGroup": "查看更多",
+    "collapseMentionGroup": "收起",
+    "emptyMentionContacts": "无匹配的联系人",
     "attach": "上传文件",
     "send": "发送",
     "removeFile": "移除文件"

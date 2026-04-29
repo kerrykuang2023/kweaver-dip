@@ -95,6 +95,17 @@ const getMentionOptionLabel = (option: AiPromptMentionOption): string => {
   return option.label
 }
 
+const getMentionMenuOptionLabel = (option: AiPromptMentionOption): string => {
+  if (option.kind === 'channelUser') {
+    return option.displayName || option.label
+  }
+  return option.label
+}
+
+const getChannelUserGroupTitle = (channelType: string): string => {
+  return `${formatChannelTypeLabel(channelType)}用户`
+}
+
 const toChannelUserOption = (item: DipChatKitChannelUser): AiPromptMentionOption | null => {
   const channelType = item.channel?.type?.trim()
   const userId = item.channel?.user_id?.trim()
@@ -482,7 +493,7 @@ const AiPromptInput: React.FC<AiPromptInputProps> = ({
     index: number,
   ): NonNullable<MenuProps['items']>[number] {
     const color = mentionAvatarColors[index % mentionAvatarColors.length]
-    const label = getMentionOptionLabel(item)
+    const label = getMentionMenuOptionLabel(item)
     return {
       key: item.value,
       label: (
@@ -573,7 +584,7 @@ const AiPromptInput: React.FC<AiPromptInputProps> = ({
       items.push({
         type: 'group',
         key: `mention_group_channel_${channelType}`,
-        label: formatChannelTypeLabel(channelType),
+        label: getChannelUserGroupTitle(channelType),
         children,
       })
     })

@@ -1,6 +1,7 @@
 {
   "dipChatKit": {
     "fetchDigitalHumanListFailed": "获取数字员工列表失败，请稍后重试",
+    "fetchChannelUserListFailed": "获取通道用户列表失败，请稍后重试",
     "selectDigitalHumanFirst": "请先选择一个数字员工",
     "missingEmployeeId": "未获取到数字员工 ID，请先选择数字员工后再发送",
     "missingSessionKey": "创建会话失败，未返回有效 sessionKey",

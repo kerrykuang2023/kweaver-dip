@@ -1,6 +1,7 @@
 {
   "dipChatKit": {
     "fetchDigitalHumanListFailed": "Failed to load digital employee list. Please try again later.",
+    "fetchChannelUserListFailed": "Failed to load channel users. Please try again later.",
     "selectDigitalHumanFirst": "Please select a digital employee first.",
     "missingEmployeeId": "No digital employee ID found. Select a digital employee before sending.",
     "missingSessionKey": "Failed to create session: no valid sessionKey returned.",

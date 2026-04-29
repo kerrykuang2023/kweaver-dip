@@ -2,6 +2,11 @@
   "aiPromptInput": {
     "mentionPanelTitle": "選擇數字員工",
     "mentionButton": "選擇數字員工",
+    "mentionObjectButton": "提及對象",
+    "employeeMentionGroup": "我的數字員工",
+    "expandMentionGroup": "查看更多",
+    "collapseMentionGroup": "收起",
+    "emptyMentionContacts": "無匹配的聯絡人",
     "attach": "上傳檔案",
     "send": "發送",
     "removeFile": "移除檔案"

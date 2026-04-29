@@ -2,6 +2,11 @@
   "aiPromptInput": {
     "mentionPanelTitle": "Select a digital employee",
     "mentionButton": "Select a digital employee",
+    "mentionObjectButton": "Mention",
+    "employeeMentionGroup": "My digital employees",
+    "expandMentionGroup": "Show more",
+    "collapseMentionGroup": "Collapse",
+    "emptyMentionContacts": "No matching contacts",
     "attach": "Upload file",
     "send": "Send",
     "removeFile": "Remove file"
