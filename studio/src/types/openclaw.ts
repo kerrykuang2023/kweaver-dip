@@ -323,9 +323,14 @@ export interface OpenClawAgentsFilesSetResult {
  */
 export interface OpenClawConfigGetResult {
   /**
-   * Serialized JSON config content.
+   * Parsed config snapshot returned by newer OpenClaw gateways.
    */
-  raw: string;
+  config?: unknown;
+
+  /**
+   * Serialized JSON config content. Present only when the gateway exposes raw config.
+   */
+  raw?: string;
 
   /**
    * Content hash used for optimistic concurrency control.

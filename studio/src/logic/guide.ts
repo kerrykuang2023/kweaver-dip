@@ -25,6 +25,7 @@ import type {
   InitializeGuideRequest,
   OpenClawDetectedConfig
 } from "../types/guide";
+import type { OpenClawConfigGetResult } from "../types/openclaw";
 
 /**
  * Internal normalized payload used by the initialization workflow.
@@ -133,7 +134,7 @@ export interface GuideOpenClawConfigRefresher {
    *
    * @returns The serialized OpenClaw config and hash.
    */
-  getConfig(): Promise<{ raw: string; hash: string }>;
+  getConfig(): Promise<OpenClawConfigGetResult>;
 
   /**
    * Applies a partial OpenClaw configuration patch.

@@ -19,6 +19,7 @@ components:
         绑定 IM 渠道到 OpenClaw agent。后端会写入 `openclaw.json` 的 `bindings` 与 `channels`：
         - `type: feishu`（或省略）→ `match.channel: "feishu"` 与 `channels.feishu`
         - `type: dingtalk` → `match.channel: "dingtalk"` 与 `channels.dingtalk`
+        后端会先通过 OpenClaw Gateway WebSocket RPC `config.get` 读取当前配置；若同类型渠道中已有相同 AppID，则返回 400。
         需已安装对应 OpenClaw 渠道插件（钉钉需安装如 `openclaw-dingtalk`），否则仅写配置仍可能无法在网关侧生效。
       properties:
         type:

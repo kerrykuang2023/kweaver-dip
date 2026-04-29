@@ -880,6 +880,7 @@ DIP 数字员工 Web 界面
 | icon_id | string | 否 | 图标 ID |
 | soul | string | 否 | `SOUL.md` 内容 |
 | skills | string[] | 否 | 创建时要追加绑定的技能名称列表；后端会始终先绑定内置技能 `archive-protocol`、`schedule-plan`、`kweaver-core`，再追加该列表；重复值会按首次出现顺序去重。响应中 `skills` 为实际绑定的技能 id 列表 |
+| channel | ChannelConfig | 否 | 渠道配置；后端会通过 OpenClaw Gateway WebSocket RPC `config.get` 检查当前配置，若同类型渠道中 AppID 已配置则返回 400 |
 
 响应：`201 application/json`
 
