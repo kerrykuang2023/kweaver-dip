@@ -72,7 +72,22 @@
 }
 
 .switchableMentionTag {
+  margin-inline: 4px;
   cursor: pointer;
+}
+
+.channelUserMentionSlotTag {
+  margin-inline: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #126ee3;
+  font-size: 14px;
+  line-height: inherit;
+}
+
+.channelUserMentionSlotTag .employeeSlotTagContent {
+  gap: 0;
 }
 
 .employeeSlotTagContent {
@@ -111,7 +126,7 @@
 
   :global {
     .dip-dropdown-menu {
-      padding: 0 8px 8px;
+      padding: 8px;
       background: #fff;
       box-shadow: none !important;
       max-height: 320px;

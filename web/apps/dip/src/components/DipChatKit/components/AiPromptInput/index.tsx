@@ -96,6 +96,13 @@ const getMentionOptionLabel = (option: AiPromptMentionOption): string => {
   return option.label
 }
 
+const getInputMentionOptionLabel = (option: AiPromptMentionOption): string => {
+  if (option.kind === 'channelUser' && option.channelType && option.displayName) {
+    return `@${formatChannelTypeLabel(option.channelType)}用户: ${option.displayName}`
+  }
+  return getMentionOptionLabel(option)
+}
+
 const getMentionMenuOptionLabel = (option: AiPromptMentionOption): string => {
   if (option.kind === 'channelUser') {
     return option.displayName || option.label
@@ -382,7 +389,7 @@ const AiPromptInput: React.FC<AiPromptInputProps> = ({
         customRender: (slotValue, onSlotChange) => {
           const valueKey = String(slotValue || item.value)
           const currentOption = optionMap.get(valueKey) ?? item
-          const label = getMentionOptionLabel(currentOption)
+          const label = getInputMentionOptionLabel(currentOption)
           const menu: MenuProps = {
             items: menuOptions.map((option, index) => buildSuggestionOptionItem(option, index)),
             selectable: true,
@@ -405,27 +412,33 @@ const AiPromptInput: React.FC<AiPromptInputProps> = ({
 
           const tag = (
             <Tag
-              className={clsx(styles.employeeSlotTag, styles.switchableMentionTag)}
+              className={clsx(
+                styles.employeeSlotTag,
+                styles.switchableMentionTag,
+                isChannelUser && styles.channelUserMentionSlotTag,
+              )}
               onMouseDown={(event) => {
                 event.preventDefault()
               }}
             >
               <span className={styles.employeeSlotTagContent}>
-                <span className={styles.employeeSlotTagAvatar}>
-                  {currentOption.avatar ?? (
-                    <Avatar
-                      size={18}
-                      style={{
-                        backgroundColor: color.bg,
-                        color: color.fg,
-                        fontSize: 11,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {getInitial(currentOption.displayName ?? currentOption.label)}
-                    </Avatar>
-                  )}
-                </span>
+                {isChannelUser ? null : (
+                  <span className={styles.employeeSlotTagAvatar}>
+                    {currentOption.avatar ?? (
+                      <Avatar
+                        size={18}
+                        style={{
+                          backgroundColor: color.bg,
+                          color: color.fg,
+                          fontSize: 11,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {getInitial(currentOption.displayName ?? currentOption.label)}
+                      </Avatar>
+                    )}
+                  </span>
+                )}
                 <span className={styles.employeeSlotTagLabel}>{label}</span>
               </span>
             </Tag>
@@ -1005,7 +1018,17 @@ const AiPromptInput: React.FC<AiPromptInputProps> = ({
       if (replaceText) {
         restoreCaretSnapshotImmediately()
       }
-      senderRef.current?.insert?.([createSwitchableMentionSlotItem(option)], 'cursor', replaceText)
+      senderRef.current?.insert?.(
+        [
+          createSwitchableMentionSlotItem(option),
+          {
+            type: 'text',
+            value: caretPlaceholder,
+          },
+        ],
+        'cursor',
+        replaceText,
+      )
       caretSnapshotRef.current = null
       closeMentionPanel()
       senderRef.current?.focus?.()

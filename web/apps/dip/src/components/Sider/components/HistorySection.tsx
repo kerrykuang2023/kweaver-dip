@@ -86,17 +86,25 @@ export const HistorySection = ({
                   >
                     {title}
                   </div>
-                  <button
-                    type="button"
+                  {/* biome-ignore lint/a11y/useSemanticElements: This control sits inside the history row button, so rendering it as a button would create invalid nested buttons. */}
+                  <span
+                    role="button"
+                    tabIndex={0}
                     className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-[--dip-text-color-45] opacity-0 invisible pointer-events-none transition-opacity group-hover:opacity-100 group-hover:visible group-hover:pointer-events-auto hover:bg-[rgba(0,0,0,0.06)]"
                     onClick={(event) => {
+                      event.stopPropagation()
+                      onDeleteHistory?.(session)
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key !== 'Enter' && event.key !== ' ') return
+                      event.preventDefault()
                       event.stopPropagation()
                       onDeleteHistory?.(session)
                     }}
                     aria-label={intl.get('sider.history.deleteAria')}
                   >
                     <IconFont type="icon-trash" />
-                  </button>
+                  </span>
                 </button>
               )
             })

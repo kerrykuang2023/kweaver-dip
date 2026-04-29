@@ -68,9 +68,9 @@ describe('renderTextWithChannelMentions', () => {
       ),
     ).toEqual([
       '发送给 ',
-      '[channel-mention-4-35|飞书用户：Zak]',
+      '[channel-mention-4-35|@飞书用户: Zak]',
       ' 和 ',
-      '[channel-mention-42-33|钉钉用户：Alice]',
+      '[channel-mention-42-33|@钉钉用户: Alice]',
     ])
   })
 
@@ -112,10 +112,10 @@ describe('channelMentionMarkedExtension', () => {
     expect(token).toEqual({
       type: 'channelMention',
       raw: '@{channel:feishu:user:<Zak>:66589dee}',
-      text: '飞书用户：<Zak>',
+      text: '@飞书用户: <Zak>',
     })
     expect(extension.renderer(token ?? {})).toBe(
-      '<channel-mention>飞书用户：&lt;Zak&gt;</channel-mention>',
+      '<channel-mention>@飞书用户: &lt;Zak&gt;</channel-mention>',
     )
   })
 })

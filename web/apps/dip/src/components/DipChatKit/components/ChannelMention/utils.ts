@@ -33,7 +33,7 @@ const escapeHtml = (value: string): string => {
 export const formatChannelMentionLabel = (channelType: string, displayName: string): string => {
   const normalizedChannelType = channelType.trim()
   const typeLabel = CHANNEL_TYPE_LABELS[normalizedChannelType] || `${normalizedChannelType}用户`
-  return `${typeLabel}：${displayName}`
+  return `@${typeLabel}: ${displayName}`
 }
 
 export const formatChannelTypeLabel = (channelType: string): string => {

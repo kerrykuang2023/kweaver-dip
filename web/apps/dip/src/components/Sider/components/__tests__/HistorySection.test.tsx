@@ -18,6 +18,7 @@ const session = (key: string, title?: string): SessionSummary => ({
   modelProvider: 'openai',
   model: 'gpt',
   contextTokens: 0,
+  displayName: title,
   derivedTitle: title,
 })
 
