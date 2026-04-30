@@ -76,7 +76,7 @@ func (u *useCase) DataResourceAuth(ctx context.Context, req *dto.DataResourceAut
 
 func (u *useCase) getRunInstanceForm(ctx context.Context) (string, map[string]string, error) {
 	//查询流程元数据详情
-	dagMeta, err := u.automationDriven.DagByName(ctx, AuditType)
+	dagMeta, err := u.automationDriven.SharedDagByName(ctx, AuditType)
 	if err != nil {
 		return "", nil, errorcode.AuditProcessNotExistErr.Detail(err.Error())
 	}
