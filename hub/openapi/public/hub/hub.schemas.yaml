@@ -17,7 +17,7 @@ components:
         headless:
           type: boolean
           title: 是否不显示导航头
-          description: "false: 显示导航头，true: 不显示导航头"
+          description: 'false: 显示导航头，true: 不显示导航头'
           default: false
       required:
         - name
@@ -67,7 +67,7 @@ components:
           description: 记录应用安装了哪些 helm release
           items:
             type: string
-          example: ["release1", "release2"]
+          example: ['release1', 'release2']
         ontology_config:
           type: array
           title: 业务知识网络配置
@@ -75,9 +75,9 @@ components:
           items:
             $ref: '#/components/schemas/OntologyConfigItem'
           example:
-            - id: "201"
+            - id: '201'
               is_config: true
-            - id: "202"
+            - id: '202'
               is_config: false
         agent_config:
           type: array
@@ -86,9 +86,9 @@ components:
           items:
             $ref: '#/components/schemas/AgentConfigItem'
           example:
-            - id: "201"
+            - id: '201'
               is_config: true
-            - id: "202"
+            - id: '202'
               is_config: false
         is_config:
           type: boolean
@@ -128,12 +128,12 @@ components:
           headless: false
         release_config: ['app-release-1']
         ontology_config:
-          - id: "201"
+          - id: '201'
             is_config: true
-          - id: "202"
+          - id: '202'
             is_config: false
         agent_config:
-          - id: "201"
+          - id: '201'
             is_config: true
         is_config: true
         updated_by: 'user-uuid-1234'
@@ -337,12 +337,12 @@ components:
           type: string
           title: Session ID
           description: 会话 ID
-          example: "550e8400-e29b-41d4-a716-446655440000"
+          example: '550e8400-e29b-41d4-a716-446655440000'
         access_token:
           type: string
           title: Access Token
           description: 新的访问令牌
-          example: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+          example: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...'
       required:
         - session_id
         - access_token
@@ -357,17 +357,17 @@ components:
           type: string
           title: 用户 ID
           description: 用户的唯一标识符
-          example: "user-uuid-1234"
+          example: 'user-uuid-1234'
         account:
           type: string
           title: 账号
           description: 用户账号
-          example: "admin"
+          example: 'admin'
         vision_name:
           type: string
           title: 显示名称
           description: 用户的显示名称
-          example: "管理员"
+          example: '管理员'
         csf_level:
           type: integer
           title: 密级
@@ -392,22 +392,22 @@ components:
           format: email
           title: 邮箱
           description: 用户邮箱地址
-          example: "admin@example.com"
+          example: 'admin@example.com'
         telephone:
           type: string
           title: 电话号码
           description: 用户电话号码
-          example: "13800138000"
+          example: '13800138000'
         third_attr:
           type: string
           title: 第三方应用属性
           description: 第三方应用属性
-          example: ""
+          example: ''
         third_id:
           type: string
           title: 第三方应用 ID
           description: 第三方应用 ID
-          example: ""
+          example: ''
         user_type:
           type: integer
           title: 用户类型
@@ -432,6 +432,153 @@ components:
         - account
         - vision_name
 
+    # ============ OEM 配置 Schema ============
+    OemConfig:
+      summary: OEM 配置
+      description: 产品 OEM 配置响应
+      type: object
+      properties:
+        product:
+          type: string
+          title: 产品名称
+          description: 产品名称
+          example: KWeaver DIP
+        theme:
+          type: string
+          title: 主题色
+          description: 主题色，使用十六进制颜色值
+          example: '#126EE3'
+        loginBoxStyle:
+          type: string
+          title: 登录框样式
+          description: 登录框样式
+          example: white
+        hideLogo:
+          type: boolean
+          title: 是否隐藏 Logo
+          description: 是否隐藏 Logo
+          example: false
+        showPortalBanner:
+          type: boolean
+          title: 是否展示门户 Banner
+          description: 是否展示门户 Banner
+          example: true
+        showUserAgreement:
+          type: boolean
+          title: 是否展示用户协议
+          description: 是否展示用户协议
+          example: true
+        showPrivacyPolicy:
+          type: boolean
+          title: 是否展示隐私政策
+          description: 是否展示隐私政策
+          example: true
+        webTemplate:
+          type: string
+          title: Web 模板
+          description: Web 端模板名称
+          example: default
+        desktopTemplate:
+          type: string
+          title: 桌面端模板
+          description: 桌面端模板名称
+          example: default
+        logo:
+          type: string
+          title: 浅色 Logo
+          description: 浅色 Logo Base64 字符串
+          example: 'iVBORw0KGgoAAAANSUhEUg...'
+        darkLogo:
+          type: string
+          title: 深色 Logo
+          description: 深色 Logo Base64 字符串
+          example: 'iVBORw0KGgoAAAANSUhEUg...'
+        portalBanner:
+          type: string
+          title: 门户 Banner
+          description: 门户 Banner 文案或资源
+          example: 决策智能体平台
+        favicon:
+          type: string
+          title: 站点图标
+          description: 站点图标 Base64 字符串
+          example: 'iVBORw0KGgoAAAANSUhEUg...'
+      required:
+        - product
+        - theme
+        - loginBoxStyle
+        - hideLogo
+        - showPortalBanner
+        - showUserAgreement
+        - showPrivacyPolicy
+        - webTemplate
+        - desktopTemplate
+        - logo
+        - darkLogo
+        - portalBanner
+        - favicon
+
+    OemConfigBatchUpdateRequest:
+      summary: OEM 配置更新请求
+      description: |
+        DIP 产品级 OEM 配置更新请求。
+
+        请求体顶层 key 为语言标识，不能为空。至少需要提供 zh-CN、en、zh-TW 中一种语言；
+        每种语言对象中的 theme、logo、darkLogo、portalBanner、favicon 至少需要提供一个，
+        不允许传入未定义字段。
+      type: object
+      minProperties: 1
+      additionalProperties:
+        $ref: '#/components/schemas/OemConfigUpdateFields'
+      example:
+        zh-CN:
+          portalBanner: 决策智能体平台
+        en:
+          portalBanner: Decision Agent Platform
+        zh-TW:
+          portalBanner: 決策智能體平台
+
+    OemConfigUpdateFields:
+      summary: OEM 配置更新字段集合
+      description: 某个语言配置下的可更新字段集合，至少需要提供一个可更新字段。
+      type: object
+      additionalProperties: false
+      properties:
+        theme:
+          type: string
+          title: 主题色
+          description: 主题色，仅支持 #RGB 或 #RRGGBB 十六进制颜色值
+          minLength: 1
+          maxLength: 7
+          pattern: '^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$'
+          example: '#126EE3'
+        logo:
+          type: string
+          title: 浅色 Logo
+          description: 浅色 Logo Base64 字符串，不要带 data:image/png;base64, 前缀
+          minLength: 1
+          format: byte
+          example: 'iVBORw0KGgoAAAANSUhEUg...'
+        darkLogo:
+          type: string
+          title: 深色 Logo
+          description: 深色 Logo Base64 字符串，不要带 data:image/png;base64, 前缀
+          minLength: 1
+          format: byte
+          example: 'iVBORw0KGgoAAAANSUhEUg...'
+        portalBanner:
+          type: string
+          title: 门户 Banner
+          description: 门户 Banner 文案或资源
+          minLength: 1
+          example: 决策智能体平台
+        favicon:
+          type: string
+          title: 站点图标
+          description: 站点图标 Base64 字符串，不要带 data:image/png;base64, 前缀
+          minLength: 1
+          format: byte
+          example: 'iVBORw0KGgoAAAANSUhEUg...'
   errors:
     ParameterError:
       description: 请求参数错误
@@ -449,6 +596,13 @@ components:
 
     ConflictError:
       description: 资源冲突（如版本号冲突）
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    UnauthorizedError:
+      description: 未认证或认证失败
       content:
         application/json:
           schema:

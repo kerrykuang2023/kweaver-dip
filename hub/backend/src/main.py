@@ -31,6 +31,7 @@ from src.routers.health_router import create_health_router
 from src.routers.application_router import create_application_router
 from src.routers.login_router import create_login_router
 from src.routers.logout_router import create_logout_router
+from src.routers.oem_config_router import create_oem_config_router
 from src.routers.refresh_token_router import create_refresh_token_router
 from src.routers.userinfo_router import create_userinfo_router
 
@@ -119,6 +120,19 @@ def create_app(settings: Settings = None) -> FastAPI:
     )
     
     # 注册全局异常处理器
+    def _sanitize_validation_errors(errors: list[dict]) -> list[dict]:
+        """将校验错误中的异常对象转换为可 JSON 序列化的字符串。"""
+        sanitized_errors = []
+        for error in errors:
+            sanitized_error = dict(error)
+            ctx = sanitized_error.get("ctx")
+            if isinstance(ctx, dict) and "error" in ctx:
+                sanitized_ctx = dict(ctx)
+                sanitized_ctx["error"] = str(sanitized_ctx["error"])
+                sanitized_error["ctx"] = sanitized_ctx
+            sanitized_errors.append(sanitized_error)
+        return sanitized_errors
+
     @app.exception_handler(BusinessException)
     async def business_exception_handler(request: Request, exc: BusinessException):
         """处理业务异常，返回统一格式的错误响应。"""
@@ -127,7 +141,7 @@ def create_app(settings: Settings = None) -> FastAPI:
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
         """处理请求参数验证异常。"""
-        errors = exc.errors()
+        errors = _sanitize_validation_errors(exc.errors())
         detail = {"validation_errors": errors} if errors else None
         return create_error_response(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -154,6 +168,11 @@ def create_app(settings: Settings = None) -> FastAPI:
 
     application_router = create_application_router(container.application_service)
     app.include_router(application_router, prefix=settings.api_prefix)
+
+    oem_config_router = create_oem_config_router(
+        container.oem_config_service
+    )
+    app.include_router(oem_config_router, prefix=settings.oem_api_prefix)
 
     login_router = create_login_router(container.login_service, settings)
     app.include_router(login_router, prefix=settings.api_prefix)

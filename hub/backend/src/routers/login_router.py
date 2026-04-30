@@ -13,8 +13,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from starlette.responses import Response as StarletteResponse
 
 from src.application.login_service import LoginService
+from src.domains.oem_config import DEFAULT_LANGUAGE
 from src.domains.session import SessionInfo
 from src.infrastructure.config.settings import Settings, get_settings
+from src.routers.oem_config_router import OEM_CONFIG_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -234,6 +236,11 @@ def create_login_router(login_service: LoginService, settings: Settings = None) 
         # session 服务：/af/api/session/v1/login/callback
         # 当前服务：/api/dip-hub/v1/login/callback
         redirect_uri = f"{base_url}/api/dip-hub/v1/login/callback"
+        oem_config_url = quote(
+            f"{base_url}{settings.oem_api_prefix}{OEM_CONFIG_PATH}"
+            f"?language={DEFAULT_LANGUAGE}",
+            safe="",
+        )
         auth_url = (
             f"/oauth2/auth"
             f"?redirect_uri={redirect_uri}"
@@ -244,6 +251,7 @@ def create_login_router(login_service: LoginService, settings: Settings = None) 
             f"&nonce={nonce}"
             f"&lang=zh-cn"
             f"&product=dip"
+            f"&oem_config_url={oem_config_url}"
         )
 
         # 使用 302 临时重定向，避免浏览器缓存导致后续登录跳过此端点

@@ -17,6 +17,7 @@ data:
   
   # API 配置
   DIP_HUB_API_PREFIX: "/api/dip-hub/v1"
+  DIP_HUB_OEM_API_PREFIX: "/api/dip/v1"
 
   # 前端路由配置
   DIP_HUB_FRONTEND_BASE_PATH: "/dip-hub"
@@ -115,4 +116,3 @@ data:
   SERVER_NAME: "{{ .service.name}}"
   SERVER_VERSION: "{{ .service.version}}"
   {{- end }}
-

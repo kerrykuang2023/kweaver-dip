@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     
     # API 配置
     api_prefix: str = Field(default="/api/dip-hub/v1", description="API 前缀")
+    oem_api_prefix: str = Field(
+        default="/api/dip/v1",
+        description="DIP 级 OEM 配置 API 前缀",
+    )
     
     # 日志配置
     log_level: str = Field(default="INFO", description="日志级别")

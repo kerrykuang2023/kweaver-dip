@@ -6,7 +6,7 @@ paths:
       summary: 安装应用
       description: |
         安装应用包，使用流式上传。
-        
+
         **流程说明：**
         1. 上传 zip 格式安装包（流式上传）
         2. Server 端边接收边写盘
@@ -27,17 +27,17 @@ paths:
               format: binary
               description: zip 格式应用安装包（流式上传）
       responses:
-        "200":
+        '200':
           description: 安装成功
           content:
             application/json:
               schema:
                 $ref: './hub.schemas.yaml#/components/schemas/Application'
-        "400":
+        '400':
           $ref: './hub.schemas.yaml#/components/errors/ParameterError'
-        "409":
+        '409':
           $ref: './hub.schemas.yaml#/components/errors/ConflictError'
-        "500":
+        '500':
           $ref: './hub.schemas.yaml#/components/errors/InternalServerError'
 
     # ============ 2、获取应用列表 ============
@@ -61,9 +61,9 @@ paths:
             application/json:
               schema:
                 $ref: './hub.schemas.yaml#/components/schemas/ApplicationList'
-        "400":
+        '400':
           $ref: './hub.schemas.yaml#/components/errors/ParameterError'
-        "500":
+        '500':
           $ref: './hub.schemas.yaml#/components/errors/InternalServerError'
 
   # ============ 3、应用配置 ============
@@ -94,11 +94,11 @@ paths:
             application/json:
               schema:
                 $ref: './hub.schemas.yaml#/components/schemas/Application'
-        "400":
+        '400':
           $ref: './hub.schemas.yaml#/components/errors/ParameterError'
-        "404":
+        '404':
           $ref: './hub.schemas.yaml#/components/errors/NotFoundError'
-        "500":
+        '500':
           $ref: './hub.schemas.yaml#/components/errors/InternalServerError'
 
   # ============ 设置应用被钉状态 ============
@@ -131,11 +131,11 @@ paths:
             application/json:
               schema:
                 $ref: './hub.schemas.yaml#/components/schemas/Application'
-        "400":
+        '400':
           $ref: './hub.schemas.yaml#/components/errors/ParameterError'
-        "404":
+        '404':
           $ref: './hub.schemas.yaml#/components/errors/NotFoundError'
-        "500":
+        '500':
           $ref: './hub.schemas.yaml#/components/errors/InternalServerError'
 
   # ============ 4.1、查看基础信息 ============
@@ -167,11 +167,11 @@ paths:
             application/json:
               schema:
                 $ref: './hub.schemas.yaml#/components/schemas/ApplicationBasicInfo'
-        "400":
+        '400':
           $ref: './hub.schemas.yaml#/components/errors/ParameterError'
-        "404":
+        '404':
           $ref: './hub.schemas.yaml#/components/errors/NotFoundError'
-        "500":
+        '500':
           $ref: './hub.schemas.yaml#/components/errors/InternalServerError'
 
   # ============ 4.2、查看业务知识网络配置情况 ============
@@ -181,7 +181,7 @@ paths:
       summary: 查看业务知识网络配置
       description: |
         查看应用的业务知识网络配置情况。
-        
+
         流程：
         1. 通过 key 获取应用的业务知识网络配置项（ontology_config）
         2. 遍历配置项，通过 id 调用外部接口查询业务知识网络详情
@@ -206,11 +206,11 @@ paths:
                 type: array
                 items:
                   $ref: '../../dependency/ontology-manager/ontology-manager.schemas.yaml#/components/schemas/KnowledgeNetworkDetail'
-        "400":
+        '400':
           $ref: './hub.schemas.yaml#/components/errors/ParameterError'
-        "404":
+        '404':
           $ref: './hub.schemas.yaml#/components/errors/NotFoundError'
-        "500":
+        '500':
           $ref: './hub.schemas.yaml#/components/errors/InternalServerError'
 
   # ============ 4.3、查看智能体 ============
@@ -220,7 +220,7 @@ paths:
       summary: 查看智能体配置
       description: |
         查看应用的 Data Agent 智能体配置情况。
-        
+
         流程：
         1. 通过 key 获取应用的智能体配置项（agent_config）
         2. 遍历配置项，通过 id 调用外部接口查询智能体详情
@@ -245,11 +245,11 @@ paths:
                 type: array
                 items:
                   $ref: '../../dependency/api-docs/openapi/public/data-agent/agent-factory/v3/agent/schema/detail.yaml#/detail'
-        "400":
+        '400':
           $ref: './hub.schemas.yaml#/components/errors/ParameterError'
-        "404":
+        '404':
           $ref: './hub.schemas.yaml#/components/errors/NotFoundError'
-        "500":
+        '500':
           $ref: './hub.schemas.yaml#/components/errors/InternalServerError'
 
   # ============ 5、卸载应用 ============
@@ -259,7 +259,7 @@ paths:
       summary: 卸载应用
       description: |
         卸载指定的应用。
-        
+
         **流程：**
         1. 调用卸载应用接口
         2. 删除数据库中应用记录
@@ -277,11 +277,11 @@ paths:
       responses:
         '204':
           description: 卸载应用成功
-        "400":
+        '400':
           $ref: './hub.schemas.yaml#/components/errors/ParameterError'
-        "404":
+        '404':
           $ref: './hub.schemas.yaml#/components/errors/NotFoundError'
-        "500":
+        '500':
           $ref: './hub.schemas.yaml#/components/errors/InternalServerError'
 
   # ============ 登录接口 ============
@@ -291,7 +291,7 @@ paths:
       summary: 登录接口
       description: |
         登录接口，重定向到 OAuth2 授权端点。
-        
+
         **流程：**
         1. 检查是否有有效的 token cookie
         2. 生成 state 和 nonce
@@ -333,8 +333,8 @@ paths:
               schema:
                 $ref: './hub.schemas.yaml#/components/schemas/ErrorResponse'
               example:
-                code: "PUBLIC_INVALID_PARAMETER"
-                description: "参数值校验不通过"
+                code: 'PUBLIC_INVALID_PARAMETER'
+                description: '参数值校验不通过'
 
   # ============ 登录回调接口 ============
   /login/callback:
@@ -343,7 +343,7 @@ paths:
       summary: 登录回调接口
       description: |
         登录回调接口，接收 OAuth2 回调。
-        
+
         **流程：**
         1. 从 cookie 获取 session_id
         2. 验证参数
@@ -409,8 +409,8 @@ paths:
               schema:
                 $ref: './hub.schemas.yaml#/components/schemas/ErrorResponse'
               example:
-                code: "GET_CODE_FAILED"
-                description: "授权码或状态参数错误"
+                code: 'GET_CODE_FAILED'
+                description: '授权码或状态参数错误'
 
   # ============ 登出接口 ============
   /logout:
@@ -419,7 +419,7 @@ paths:
       summary: 登出接口
       description: |
         登出接口，重定向到 OAuth2 登出端点。
-        
+
         **流程：**
         1. 从 Cookie 获取 session_id
         2. 获取 Session 信息
@@ -450,8 +450,8 @@ paths:
               schema:
                 $ref: './hub.schemas.yaml#/components/schemas/ErrorResponse'
               example:
-                code: "GET_COOKIE_VALUE_NOT_EXIST"
-                description: "Session ID 不存在"
+                code: 'GET_COOKIE_VALUE_NOT_EXIST'
+                description: 'Session ID 不存在'
 
   # ============ 登出回调接口 ============
   /logout/callback:
@@ -460,7 +460,7 @@ paths:
       summary: 登出回调接口
       description: |
         登出回调接口，接收 OAuth2 登出回调。
-        
+
         **流程：**
         1. 从 Cookie 获取 session_id
         2. 验证参数
@@ -509,8 +509,8 @@ paths:
               schema:
                 $ref: './hub.schemas.yaml#/components/schemas/ErrorResponse'
               example:
-                code: "DO_LOGOUT_CALLBACK_FAILED"
-                description: "登出回调失败: error_code"
+                code: 'DO_LOGOUT_CALLBACK_FAILED'
+                description: '登出回调失败: error_code'
 
   # ============ 刷新令牌接口 ============
   /refresh-token:
@@ -519,7 +519,7 @@ paths:
       summary: 刷新令牌接口
       description: |
         刷新令牌接口，使用 Refresh Token 获取新的 Access Token。
-        
+
         **流程：**
         1. 从 Cookie 获取 session_id 和 token
         2. 执行刷新
@@ -546,8 +546,8 @@ paths:
               schema:
                 $ref: './hub.schemas.yaml#/components/schemas/ErrorResponse'
               example:
-                code: "REFRESH_TOKEN_ERROR"
-                description: "刷新 Token 失败: Session ID 或 Token 不存在"
+                code: 'REFRESH_TOKEN_ERROR'
+                description: '刷新 Token 失败: Session ID 或 Token 不存在'
 
   # ============ 用户信息接口 ============
   /userinfo:
@@ -556,7 +556,7 @@ paths:
       summary: 用户信息接口
       description: |
         用户信息接口，根据 Token 获取用户信息。
-        
+
         **流程：**
         1. 从 Authorization Header 获取 Token
         2. 获取用户信息
@@ -579,5 +579,94 @@ paths:
               schema:
                 $ref: './hub.schemas.yaml#/components/schemas/ErrorResponse'
               example:
-                code: "GET_USER_INFO_ERROR"
-                description: "获取用户信息失败: Authorization Header 格式错误"
+                code: 'GET_USER_INFO_ERROR'
+                description: '获取用户信息失败: Authorization Header 格式错误'
+
+  # ============ OEM 配置接口 ============
+  /oem-config:
+    servers:
+      - url: /api/dip/v1
+        description: DIP 产品级 OEM API 服务
+    get:
+      operationId: getOemConfig
+      summary: 获取 OEM 配置
+      description: |
+        获取 DIP 产品级 OEM 配置。
+
+        访问地址为 GET /api/dip/v1/oem-config，不挂在 /api/dip-hub/v1 下。
+        根据 language 查询对应语言的配置资源，当前支持 zh-CN、en、zh-TW。
+        服务启动时会为三种语言初始化默认资源到 t_oem_config；默认 Logo、Dark Logo、
+        Favicon 图片资源来自后端静态资源文件，代码读取后转换为 Base64。上述字段均会入库，
+        并可通过 PUT 接口对应字段修改。
+        该接口供 ISF 等外部调用方读取，不需要鉴权。
+      tags:
+        - OemConfig
+      security: []
+      parameters:
+        - name: language
+          in: query
+          description: 语言标识，例如 zh-CN、en、zh-TW
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          example: zh-CN
+      responses:
+        '200':
+          description: 成功获取 OEM 配置
+          content:
+            application/json:
+              schema:
+                $ref: './hub.schemas.yaml#/components/schemas/OemConfig'
+        '400':
+          $ref: './hub.schemas.yaml#/components/errors/ParameterError'
+        '500':
+          $ref: './hub.schemas.yaml#/components/errors/InternalServerError'
+    put:
+      operationId: updateOemConfig
+      summary: 修改 OEM 配置
+      description: |
+        修改 DIP 产品级 OEM 配置。
+
+        请求体顶层 key 是配置的语言维度，不是可修改的 OEM 字段。一次请求可同时修改
+        zh-CN、en、zh-TW 中的一种或多种语言；未出现在请求体中的语言保持原状。
+        PUT 接口不支持任何 query 参数，语言标识只允许放在请求体顶层 key 中。
+
+        仅持久化 theme、logo、darkLogo、favicon、portalBanner 等动态配置字段；
+        其余响应字段由后端默认配置生成。
+
+        PUT 流程：
+        1. 认证中间件校验 Authorization Token。
+        2. 路由层校验 URL 不包含 query 参数。
+        3. 路由层校验请求体至少包含一种语言，且每种语言对象至少包含一个可更新字段。
+        4. 应用服务先规范化并校验全部 language，仅允许 zh-CN、en、zh-TW。
+        5. 若存在空 language 或不支持的 language，直接返回校验错误，不执行数据库写入。
+        6. 逐个查询请求中出现语言的配置；正常情况下支持语言已在启动时初始化到数据库，若记录异常缺失，则使用该语言默认配置兜底。
+        7. 将每种语言对象中传入的字段覆盖当前配置，未传字段保持原值。
+        8. 数据库按 language 在同一个事务内执行批量 upsert，任一语言失败时整体回滚。
+        9. 按 language 返回更新后的完整 OEM 配置。
+      tags:
+        - OemConfig
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './hub.schemas.yaml#/components/schemas/OemConfigBatchUpdateRequest'
+      responses:
+        '200':
+          description: 成功修改 OEM 配置
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: './hub.schemas.yaml#/components/schemas/OemConfig'
+        '400':
+          $ref: './hub.schemas.yaml#/components/errors/ParameterError'
+        '401':
+          $ref: './hub.schemas.yaml#/components/errors/UnauthorizedError'
+        '500':
+          $ref: './hub.schemas.yaml#/components/errors/InternalServerError'

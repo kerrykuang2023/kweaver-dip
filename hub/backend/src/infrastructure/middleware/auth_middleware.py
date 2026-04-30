@@ -25,10 +25,18 @@ PUBLIC_PATHS = [
     "/logout",
     "/logout/callback",
     "/refresh-token",
+    "/oem-config",
     "/docs",
     "/redoc",
     "/openapi.json",
 ]
+
+# 部分路径只有指定 HTTP 方法是公开接口。
+# 例如 /oem-config 的 GET 供 ISF 读取配置不需要鉴权，
+# 但同一路径的 PUT 会修改配置，必须继续走鉴权。
+PUBLIC_METHOD_PATHS = {
+    ("GET", "/oem-config"),
+}
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -43,21 +51,34 @@ class AuthMiddleware(BaseHTTPMiddleware):
     对于需要认证的路径（如 /applications），如果没有token或token无效，则拒绝访问。
     """
     
-    def _is_public_path(self, path: str) -> bool:
+    def _is_public_path(self, path: str, method: str = "GET") -> bool:
         """
         判断路径是否为公开路径（不需要认证）。
         
         参数:
             path: 请求路径
-        
+            method: 请求方法
+
         返回:
             bool: 如果是公开路径返回True，否则返回False
         """
+        normalized_method = method.upper()
+
+        for public_method, public_path in PUBLIC_METHOD_PATHS:
+            if normalized_method != public_method:
+                continue
+            if path == public_path:
+                return True
+            if path.endswith(public_path) or path.endswith(public_path + "/"):
+                return True
+
         # 检查路径是否以公开路径前缀开头
         # 支持两种情况：
         # 1. 直接路径：/healthz, /docs 等
         # 2. 带API前缀的路径：/api/dip-hub/v1/healthz 等
         for public_path in PUBLIC_PATHS:
+            if public_path == "/oem-config":
+                continue
             # 直接匹配（如 /healthz）
             if path == public_path:
                 return True
@@ -84,7 +105,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         
         # 如果是公开路径，直接放行
-        if self._is_public_path(path):
+        if self._is_public_path(path, request.method):
             try:
                 response = await call_next(request)
                 return response
@@ -176,4 +197,3 @@ class AuthMiddleware(BaseHTTPMiddleware):
             # 请求处理完成后清除上下文，避免上下文污染
             TokenContext.clear_token()
             UserContext.clear_user_info()
-

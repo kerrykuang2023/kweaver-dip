@@ -9,9 +9,18 @@ import logging
 
 import pymysql
 
+from src.domains.oem_config import (
+    SUPPORTED_LANGUAGES,
+    default_oem_config_stored_fields,
+)
 from src.infrastructure.config.settings import Settings
+from src.infrastructure.database.oem_config_schema import (
+    CREATE_OEM_CONFIG_TABLE_SQL,
+)
 
 logger = logging.getLogger(__name__)
+
+OEM_CONFIG_TABLE = "t_oem_config"
 
 
 async def ensure_tables_exist(settings: Settings) -> None:
@@ -122,6 +131,12 @@ def _sync_ensure_tables_exist(settings: Settings) -> None:
                 "ALTER TABLE `t_application` ADD COLUMN `pinned` BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否被钉（置顶）' AFTER `is_config`"
             )
 
+            _ensure_table_exists(
+                cursor, settings.db_name, OEM_CONFIG_TABLE,
+                CREATE_OEM_CONFIG_TABLE_SQL,
+            )
+            _ensure_default_oem_config(cursor)
+
         connection.commit()
         logger.info("数据库表检查完成")
 
@@ -189,3 +204,26 @@ def _ensure_column_type_updated(cursor, db_name: str, table_name: str, column_na
             logger.debug(f"表 '{table_name}' 的列 '{column_name}' 不存在，跳过类型更新")
     except Exception as e:
         logger.warning(f"检查/更新列类型 '{table_name}.{column_name}' 失败: {e}")
+
+
+def _ensure_default_oem_config(cursor) -> None:
+    """确保系统默认 OEM 配置存在。"""
+    for language in SUPPORTED_LANGUAGES:
+        stored = default_oem_config_stored_fields(language)
+        cursor.execute(
+            """
+            INSERT INTO t_oem_config
+                (language, theme, logo, dark_logo, portal_banner, favicon)
+            VALUES
+                (%s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE language = language
+            """,
+            (
+                stored.language,
+                stored.theme,
+                stored.logo,
+                stored.dark_logo,
+                stored.portal_banner,
+                stored.favicon,
+            ),
+        )

@@ -10,6 +10,7 @@ from src.application.health_service import HealthService
 from src.application.application_service import ApplicationService
 from src.application.login_service import LoginService
 from src.application.logout_service import LogoutService
+from src.application.oem_config_service import OemConfigService
 from src.application.refresh_token_service import RefreshTokenService
 from src.application.user_info_service import UserInfoService
 from src.adapters.health_adapter import HealthAdapter
@@ -30,6 +31,8 @@ from src.adapters.mock_external_service_adapter import (
     MockAgentFactoryAdapter,
 )
 from src.adapters.mock_application_adapter import MockApplicationAdapter
+from src.adapters.mock_oem_config_adapter import MockOemConfigAdapter
+from src.adapters.oem_config_adapter import OemConfigAdapter
 from src.infrastructure.config.settings import Settings, get_settings
 
 logger = logging.getLogger(__name__)
@@ -62,8 +65,10 @@ class Container:
         self._hydra_adapter = None
         self._user_management_adapter = None
         self._deploy_manager_adapter = None
+        self._oem_config_adapter = None
         self._login_service = None
         self._logout_service = None
+        self._oem_config_service = None
         self._refresh_token_service = None
         self._user_info_service = None
     
@@ -166,6 +171,17 @@ class Container:
         return self._deploy_manager_adapter
 
     @property
+    def oem_config_adapter(self):
+        """获取 OEM 配置适配器实例（单例）。"""
+        if self._oem_config_adapter is None:
+            if self._settings.use_mock_services:
+                logger.info("使用 Mock OEM 配置适配器")
+                self._oem_config_adapter = MockOemConfigAdapter()
+            else:
+                self._oem_config_adapter = OemConfigAdapter(self._settings)
+        return self._oem_config_adapter
+
+    @property
     def login_service(self) -> LoginService:
         """获取登录服务实例（单例）。"""
         if self._login_service is None:
@@ -188,6 +204,15 @@ class Container:
                 deploy_manager_port=self.deploy_manager_adapter,
             )
         return self._logout_service
+
+    @property
+    def oem_config_service(self) -> OemConfigService:
+        """获取 OEM 配置服务实例（单例）。"""
+        if self._oem_config_service is None:
+            self._oem_config_service = OemConfigService(
+                oem_config_port=self.oem_config_adapter
+            )
+        return self._oem_config_service
 
     @property
     def refresh_token_service(self) -> RefreshTokenService:
@@ -239,6 +264,8 @@ class Container:
         """
         if self._application_adapter is not None:
             await self._application_adapter.close()
+        if self._oem_config_adapter is not None:
+            await self._oem_config_adapter.close()
         if self._session_adapter is not None:
             await self._session_adapter.close()
 

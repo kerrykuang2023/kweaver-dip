@@ -16,6 +16,14 @@ info:
     - **查看业务知识网络**: GET /applications/ontologies - 查看业务知识网络配置
     - **查看智能体**: GET /applications/agents - 查看智能体配置
     - **卸载应用**: DELETE /applications/{key} - 卸载指定应用
+    - **获取 OEM 配置**: GET /api/dip/v1/oem-config - 获取 DIP 产品级 OEM 配置
+    - **修改 OEM 配置**: PUT /api/dip/v1/oem-config - 修改 DIP 产品级 OEM 配置
+
+    ## 术语说明
+
+    - **DIP**: Decision Intelligence Platform，决策智能体平台产品整体。
+    - **OEM**: Original Equipment Manufacturer，在本文档中表示产品品牌定制配置，包括主题色、Logo、Favicon、门户 Banner 等资源。
+    - **ISF**: Information Security Fabric，统一登录页能力。ISF 会通过 `oem_config_url` 读取 OEM 配置并渲染登录页品牌资源。
   version: 1.0.0
   contact:
     name: DIP Hub Team
@@ -31,6 +39,8 @@ tags:
     description: 刷新令牌接口
   - name: UserInfo
     description: 用户信息接口
+  - name: OemConfig
+    description: OEM 配置接口
 
 security:
   - BearerAuth: []
@@ -90,6 +100,10 @@ paths:
   /userinfo:
     $ref: "./hub/hub.paths.yaml#/paths/~1userinfo"
 
+  # ============ OEM 配置接口 ============
+  /oem-config:
+    $ref: "./hub/hub.paths.yaml#/paths/~1oem-config"
+
 components:
   securitySchemes:
     BearerAuth:
@@ -116,3 +130,9 @@ components:
       $ref: "./hub/hub.schemas.yaml#/components/schemas/RefreshTokenResponse"
     UserInfo:
       $ref: "./hub/hub.schemas.yaml#/components/schemas/UserInfo"
+    OemConfig:
+      $ref: "./hub/hub.schemas.yaml#/components/schemas/OemConfig"
+    OemConfigBatchUpdateRequest:
+      $ref: "./hub/hub.schemas.yaml#/components/schemas/OemConfigBatchUpdateRequest"
+    OemConfigUpdateFields:
+      $ref: "./hub/hub.schemas.yaml#/components/schemas/OemConfigUpdateFields"

@@ -18,4 +18,10 @@ spec:
               number: {{.Values.service.port}}
         path: /api/dip-hub
         pathType: ImplementationSpecific
-
+      - backend:
+          service:
+            name: {{.Values.service.name}}
+            port:
+              number: {{.Values.service.port}}
+        path: /api/dip
+        pathType: ImplementationSpecific
