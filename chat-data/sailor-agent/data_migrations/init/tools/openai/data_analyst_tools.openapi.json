@@ -1670,7 +1670,7 @@
         }
       }
     },
-    "/api/af-sailor-agent/v1/assistant/tools/task_manager_tool": {
+    "/api/af-sailor-agent/v1/assistant/tools/task_manager": {
       "post": {
         "tags": [
           "other_category"
@@ -2470,7 +2470,7 @@
         }
       }
     },
-    "/api/af-sailor-agent/v1/assistant/tools/data_source_rerank": {
+    "/api/af-sailor-agent/v1/assistant/tools/datasource_rerank": {
       "post": {
         "tags": [
           "other_category"
