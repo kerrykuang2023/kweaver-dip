@@ -2,7 +2,7 @@
 
 - **Issue**: [kweaver-ai/kweaver-dip#167](https://github.com/kweaver-ai/kweaver-dip/issues/167)
 - **目标**: 用户可将常用数字员工固定到侧边栏，一键跳转会话页并切换员工，减少重复选择路径。
-- **范围**: DIP Web 主应用（`web/apps/dip`）入口侧栏与相关状态；后端 API 是否新增见下文方案。
+- **范围**: DIP Web 主应用侧栏与 dip-hub 用户偏好 API（`user/preferences`）。
 
 ---
 
@@ -34,7 +34,7 @@
 | **B. 仅前端 localStorage（或其它客户端持久化）** | 实现快，不依赖后端发版。 | 换浏览器/清缓存丢失；与钉应用行为不一致；多 Tab 需 storage 事件或统一 store。 |
 | **C. 扩展通用用户 KV** | 一次建模，后续其它偏好也可写入。 | 设计/评审成本更高，适合已有或计划中的通用偏好能力。 |
 
-**推荐**：长期以 **方案 A** 为准，与 `pinMicroAppApi` 并列（例如 `GET/PUT` 用户侧栏钉选 ID 列表或逐条 pinned 标记）；若 v0.7.0 时间窗内后端未就绪，可 **第一期落地 B（按 userId 分 key 的 localStorage）**，接口就绪后迁移到 A（读取时合并或一次性导入）。
+**已定稿**：采用 **方案 A**。dip-hub 提供 **`GET/PUT /api/dip-hub/v1/user/preferences`**，请求/响应体字段 `pinned_digital_human_ids`（有序，服务端最多 **30** 条）；持久化表 **`t_user_preference`**（主键 `user_id`，`content` 为 JSON）。前端 API：`getUserPreferences`、`putUserPreferences`（`web/apps/dip/src/apis/dip-hub/user/preferences.ts`）。
 
 ---
 
@@ -42,7 +42,7 @@
 
 **逻辑模型（与存储无关）**
 
-- `pinnedDigitalHumanIds: string[]` — 有序列表，前者先显示，**上限建议 N=10～20**（与后端约定或前端裁剪，避免侧栏过长）。
+- `pinned_digital_human_ids: string[]` — 有序列表，前者先显示；**Hub 服务端上限 30**（侧栏展示可自行再截断）。
 - 展示所需元数据：`id` + `name` + `icon_id`（或现有 `resolveDigitalHumanIconSrc` 所需字段）；可从 `getDigitalHumanList()` 缓存对齐，固定操作时也可写入快照以减少列表请求。
 
 **校验**

@@ -582,6 +582,55 @@ paths:
                 code: 'GET_USER_INFO_ERROR'
                 description: '获取用户信息失败: Authorization Header 格式错误'
 
+  # ============ 用户偏好 ============
+  /user/preferences:
+    get:
+      operationId: getUserPreferences
+      summary: 获取当前用户偏好
+      description: 读取当前登录用户持久化的偏好（含侧栏钉选数字员工 ID 列表）。
+      tags:
+        - UserPreference
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: './hub.schemas.yaml#/components/schemas/UserPreferences'
+        '401':
+          $ref: './hub.schemas.yaml#/components/errors/UnauthorizedError'
+        '500':
+          $ref: './hub.schemas.yaml#/components/errors/InternalServerError'
+    put:
+      operationId: putUserPreferences
+      summary: 更新当前用户偏好（钉选数字员工）
+      description: 全量替换侧栏钉选数字员工 ID 列表，顺序即为展示顺序。
+      tags:
+        - UserPreference
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './hub.schemas.yaml#/components/schemas/UserPreferencesPutRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: './hub.schemas.yaml#/components/schemas/UserPreferences'
+        '400':
+          $ref: './hub.schemas.yaml#/components/errors/ParameterError'
+        '401':
+          $ref: './hub.schemas.yaml#/components/errors/UnauthorizedError'
+        '500':
+          $ref: './hub.schemas.yaml#/components/errors/InternalServerError'
+
   # ============ OEM 配置接口 ============
   /oem-config:
     servers:

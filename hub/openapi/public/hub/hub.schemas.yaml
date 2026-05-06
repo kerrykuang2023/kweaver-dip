@@ -579,6 +579,37 @@ components:
           minLength: 1
           format: byte
           example: 'iVBORw0KGgoAAAANSUhEUg...'
+
+    UserPreferences:
+      summary: 用户偏好
+      description: 当前用户在与 DIP Hub 同步的偏好数据
+      type: object
+      properties:
+        pinned_digital_human_ids:
+          type: array
+          description: 侧栏固定的数字员工 ID（与 dip-studio 数字员工 id 一致），顺序即展示顺序
+          maxItems: 30
+          items:
+            type: string
+            maxLength: 128
+      required:
+        - pinned_digital_human_ids
+
+    UserPreferencesPutRequest:
+      summary: 更新用户偏好请求体
+      description: 全量替换钉选数字员工列表
+      type: object
+      additionalProperties: false
+      properties:
+        pinned_digital_human_ids:
+          type: array
+          description: 钉选 ID 有序列表；空数组表示全部取消固定
+          maxItems: 30
+          items:
+            type: string
+            maxLength: 128
+      required:
+        - pinned_digital_human_ids
   errors:
     ParameterError:
       description: 请求参数错误

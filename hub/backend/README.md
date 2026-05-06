@@ -124,6 +124,11 @@ open htmlcov/index.html
 
 ## API 端点
 
+### 用户偏好
+
+- `GET /api/dip-hub/v1/user/preferences` - 获取当前用户偏好（含侧栏钉选数字员工 ID）
+- `PUT /api/dip-hub/v1/user/preferences` - 全量更新钉选数字员工 ID 列表
+
 ### 应用管理
 
 - `GET /api/dip-hub/v1/applications` - 获取已安装应用列表

@@ -2,7 +2,13 @@ import { get } from '@/utils/http'
 import type { UserInfo } from './index.d'
 
 // 导出类型定义
-export type { RoleInfo, UserInfo, UserRole } from './index.d'
+export type {
+  RoleInfo,
+  UserInfo,
+  UserPreferences,
+  UserPreferencesPutBody,
+  UserRole,
+} from './index.d'
 
 /**
  * 获取用户信息接口
@@ -12,3 +18,5 @@ export type { RoleInfo, UserInfo, UserRole } from './index.d'
 export function getUserInfo(): Promise<UserInfo> {
   return get(`/api/dip-hub/v1/userinfo`)
 }
+
+export { getUserPreferences, putUserPreferences } from './preferences'
