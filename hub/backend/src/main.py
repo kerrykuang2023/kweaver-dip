@@ -34,7 +34,6 @@ from src.routers.logout_router import create_logout_router
 from src.routers.oem_config_router import create_oem_config_router
 from src.routers.refresh_token_router import create_refresh_token_router
 from src.routers.userinfo_router import create_userinfo_router
-from src.routers.user_preference_router import create_user_preference_router
 
 
 def create_app(settings: Settings = None) -> FastAPI:
@@ -186,9 +185,6 @@ def create_app(settings: Settings = None) -> FastAPI:
 
     userinfo_router = create_userinfo_router(container.user_info_service)
     app.include_router(userinfo_router, prefix=settings.api_prefix)
-
-    user_preference_router = create_user_preference_router(container.user_preference_service)
-    app.include_router(user_preference_router, prefix=settings.api_prefix)
 
     return app
 

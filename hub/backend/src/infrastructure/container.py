@@ -13,11 +13,8 @@ from src.application.logout_service import LogoutService
 from src.application.oem_config_service import OemConfigService
 from src.application.refresh_token_service import RefreshTokenService
 from src.application.user_info_service import UserInfoService
-from src.application.user_preference_service import UserPreferenceService
 from src.adapters.health_adapter import HealthAdapter
 from src.adapters.application_adapter import ApplicationAdapter
-from src.adapters.user_preference_adapter import UserPreferenceAdapter
-from src.adapters.mock_user_preference_adapter import MockUserPreferenceAdapter
 from src.adapters.session_adapter import SessionAdapter
 from src.adapters.oauth2_adapter import OAuth2Adapter
 from src.adapters.hydra_adapter import HydraAdapter
@@ -74,9 +71,7 @@ class Container:
         self._oem_config_service = None
         self._refresh_token_service = None
         self._user_info_service = None
-        self._user_preference_adapter = None
-        self._user_preference_service = None
-
+    
     @property
     def settings(self) -> Settings:
         """获取应用配置。"""
@@ -240,26 +235,6 @@ class Container:
         return self._user_info_service
 
     @property
-    def user_preference_adapter(self):
-        """用户偏好适配器（单例）。"""
-        if self._user_preference_adapter is None:
-            if self._settings.use_mock_services:
-                logger.info("使用 Mock 用户偏好适配器")
-                self._user_preference_adapter = MockUserPreferenceAdapter()
-            else:
-                self._user_preference_adapter = UserPreferenceAdapter(self._settings)
-        return self._user_preference_adapter
-
-    @property
-    def user_preference_service(self) -> UserPreferenceService:
-        """用户偏好服务（单例）。"""
-        if self._user_preference_service is None:
-            self._user_preference_service = UserPreferenceService(
-                preference_port=self.user_preference_adapter,
-            )
-        return self._user_preference_service
-
-    @property
     def application_service(self) -> ApplicationService:
         """获取应用服务实例（单例）。"""
         if self._application_service is None:
@@ -289,8 +264,6 @@ class Container:
         """
         if self._application_adapter is not None:
             await self._application_adapter.close()
-        if self._user_preference_adapter is not None:
-            await self._user_preference_adapter.close()
         if self._oem_config_adapter is not None:
             await self._oem_config_adapter.close()
         if self._session_adapter is not None:

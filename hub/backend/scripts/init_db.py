@@ -83,16 +83,6 @@ def init_database():
             print("✓ 表 't_user_role' 已创建")
 
             cursor.execute("""
-                CREATE TABLE IF NOT EXISTS `t_studio_user_preference` (
-                    `user_id` CHAR(36) NOT NULL COMMENT '用户ID',
-                    `content` LONGTEXT NOT NULL COMMENT '偏好 JSON',
-                    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                    PRIMARY KEY (`user_id`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Studio 用户偏好表'
-            """)
-            print("✓ 表 't_studio_user_preference' 已创建")
-
-            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS `t_application` (
                     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
                     `key` CHAR(32) NOT NULL COMMENT '应用包唯一标识',
