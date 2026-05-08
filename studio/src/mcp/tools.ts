@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import * as z from "zod/v3";
+import * as z from "zod";
 
 import type { StudioMcpLogic } from "../logic/mcp";
 

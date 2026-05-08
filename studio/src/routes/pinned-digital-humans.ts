@@ -13,7 +13,7 @@ import {
 } from "../logic/pinned-digital-humans";
 import { createStudioDatabasePool } from "../infra/mariadb-client";
 import { DefaultPinnedDigitalHumansMysqlStore } from "../infra/pinned-digital-humans-mysql-store";
-import { getEnv } from "../utils/env";
+import { getEnv, getStudioDatabaseConfig } from "../utils/env";
 import { digitalHumanLogic } from "./digital-human";
 
 /**
@@ -49,15 +49,7 @@ function toPinnedUpstreamHttpError(
 export const PINNED_DIGITAL_HUMANS_PATH =
   "/api/dip-studio/v1/pinned-digital-humans";
 
-const env = getEnv();
-const studioDatabasePool = createStudioDatabasePool({
-  host: env.dbHost,
-  port: env.dbPort,
-  user: env.dbUser,
-  password: env.dbPassword,
-  database: env.dbName,
-  connectionLimit: 10
-});
+const studioDatabasePool = createStudioDatabasePool(getStudioDatabaseConfig());
 const pinnedDigitalHumansLogic = new DefaultPinnedDigitalHumansLogic(
   new DefaultPinnedDigitalHumansMysqlStore(studioDatabasePool),
   digitalHumanLogic

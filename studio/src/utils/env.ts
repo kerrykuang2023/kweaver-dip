@@ -390,67 +390,6 @@ export function resolveBknBackendUrl(value: string | undefined): string {
 }
 
 /**
- * Resolves the database host.
- *
- * @param value Raw environment variable value.
- * @returns The normalized database host.
- */
-export function resolveDatabaseHost(value: string | undefined): string {
-  return readOptionalString(value) ?? "127.0.0.1";
-}
-
-/**
- * Resolves the database port number.
- *
- * @param value Raw environment variable value.
- * @returns The validated database port number.
- * @throws {Error} Thrown when the configured port is invalid.
- */
-export function resolveDatabasePort(value: string | undefined): number {
-  if (value === undefined || value.trim() === "") {
-    return 3306;
-  }
-
-  const port = Number.parseInt(value, 10);
-
-  if (!Number.isInteger(port) || port <= 0) {
-    throw new Error(`Invalid DB_PORT value: ${value}`);
-  }
-
-  return port;
-}
-
-/**
- * Resolves the database schema name.
- *
- * @param value Raw environment variable value.
- * @returns The normalized schema name.
- */
-export function resolveDatabaseName(value: string | undefined): string {
-  return readOptionalString(value) ?? "kweaver";
-}
-
-/**
- * Resolves the database user name.
- *
- * @param value Raw environment variable value.
- * @returns The normalized database user name.
- */
-export function resolveDatabaseUser(value: string | undefined): string {
-  return readOptionalString(value) ?? "root";
-}
-
-/**
- * Resolves the database password.
- *
- * @param value Raw environment variable value.
- * @returns The normalized database password string.
- */
-export function resolveDatabasePassword(value: string | undefined): string {
-  return value ?? "";
-}
-
-/**
  * Resolves the Hydra admin base URL.
  *
  * @param value The raw environment variable value.
