@@ -148,6 +148,7 @@ describe("renderIdentityMarkdown / renderSoulMarkdown", () => {
     expect(md).toContain("> body");
     expect(md).toContain("严禁去列举业务知识网络");
     expect(md).toContain("严禁执行 `kweaver bkn list` 命令");
+    expect(md).toContain("使用 kweaver-core 技能时，一定要通过 MCP 服务获取 token 和可访问的业务知识网络范围");
     expect(md).toContain("### 使用约束");
     expect(md).toContain("不允许查询其他业务知识网络");
     expect(md).not.toContain("## 业务知识网络");
@@ -156,6 +157,8 @@ describe("renderIdentityMarkdown / renderSoulMarkdown", () => {
     expect(md).not.toContain("如果用户问题可能和以下的业务知识网络有关系");
     expect(md).not.toContain("请使用kweaver-core技能先从业务网络中查询相关信息");
     expect(md).not.toContain("> | a | b |");
+    expect(md).not.toContain("## 业务知识网络");
+    expect(md).not.toContain("以下为当前允许使用的业务知识网络");
     expect(md).toContain("## 归档与计划技能");
     expect(md).toContain("archive-protocol");
     expect(md).toContain("schedule-plan");
