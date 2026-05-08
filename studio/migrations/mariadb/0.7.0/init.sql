@@ -2,7 +2,6 @@ CREATE DATABASE IF NOT EXISTS kweaver DEFAULT CHARACTER SET utf8mb4 COLLATE utf8
 
 USE kweaver;
 
-<<<<<<< HEAD
 CREATE TABLE IF NOT EXISTS t_studio_config (
   id INT NOT NULL AUTO_INCREMENT COMMENT '自增主键',
   kweaver_base_url VARCHAR(255) NULL COMMENT 'KWeaver 服务连接地址',
@@ -11,8 +10,6 @@ CREATE TABLE IF NOT EXISTS t_studio_config (
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='DIP Studio 平台配置';
 
-=======
->>>>>>> 59c34a86 (chore: 初始化脚本目录 0.6.0 -> 0.7.0)
 CREATE TABLE IF NOT EXISTS t_digital_employee (
   id CHAR(36) NOT NULL COMMENT '数字员工 ID，等同于 agentId',
   app_id CHAR(36) NULL COMMENT '数字员工绑定的应用账号 ID',
