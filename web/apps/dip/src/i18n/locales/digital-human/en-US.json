@@ -123,6 +123,37 @@
       "updatedPrefix": "Updated: ",
       "tabAllNetworks": "All business knowledge networks"
     },
+    "appAccountModal": {
+      "title": "Select KWeaver Token",
+      "subtitle": "Select an app account to link business knowledge networks",
+      "createTitle": "New app account",
+      "searchPlaceholder": "Search Token",
+      "loadFailed": "Failed to load",
+      "emptyNoAccount": "No app accounts yet",
+      "create": "New",
+      "createFailed": "Failed to create app account",
+      "tokenFailed": "Failed to get app account token",
+      "nameLabel": "App account name",
+      "nameRequired": "Please enter an app account name",
+      "namePlaceholder": "Enter app account name",
+      "boundPrefix": "App account: ",
+      "unbound": "No app account configured. Configure one before selecting knowledge.",
+      "switch": "Switch",
+      "delete": "Delete",
+      "deleteTitle": "Delete app account?",
+      "deleteContent": "After deletion, the digital employee cannot access linked business knowledge networks. Continue?",
+      "deleteOk": "Delete"
+    },
+    "appPolicyModal": {
+      "title": "Configure app account permissions",
+      "desc": "Grant data query permission on the selected business knowledge networks. The permission never expires.",
+      "operation": "Permission",
+      "dataQuery": "Data query",
+      "expiresAt": "Expires",
+      "permanent": "Never",
+      "loadFailed": "Failed to load app account permissions",
+      "saveFailed": "Failed to configure app account permissions"
+    },
     "channel": {
       "sectionDesc": "Configure channels the digital employee can use, such as DingTalk or Feishu.",
       "columnChannelDesc": "Channel",

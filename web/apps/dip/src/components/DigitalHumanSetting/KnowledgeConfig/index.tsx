@@ -1,7 +1,12 @@
-import { Button, Flex, Table, Tooltip } from 'antd'
+import { Button, Flex, Modal, message, Table, Tag, Tooltip } from 'antd'
 import { memo, useMemo, useState } from 'react'
 import intl from 'react-intl-universal'
-import type { BknKnowledgeNetworkInfo } from '@/apis'
+import {
+  type AppAccount,
+  type BknKnowledgeNetworkInfo,
+  createAppToken,
+  getAccessorPolicies,
+} from '@/apis'
 import type { BknEntry } from '@/apis/dip-studio/digital-human'
 import AppIcon from '@/components/AppIcon'
 import Empty from '@/components/Empty'
@@ -9,7 +14,13 @@ import IconFont from '@/components/IconFont'
 import ScrollBarContainer from '@/components/ScrollBarContainer'
 import { useLanguageStore } from '@/stores/languageStore'
 import { useDigitalHumanStore } from '../digitalHumanStore'
+import ConfigureAppPolicyModal, {
+  BKN_POLICY_RESOURCE_TYPE,
+  BKN_QUERY_OPERATION_ID,
+} from './ConfigureAppPolicyModal'
+import CreateAppAccountModal, { type CreateAppAccountResult } from './CreateAppAccountModal'
 import styles from './index.module.less'
+import SelectAppAccountModal from './SelectAppAccountModal'
 import SelectKnowledgeModal from './SelectKnowledgeModal'
 
 interface KnowledgeConfigProps {
@@ -19,22 +30,106 @@ interface KnowledgeConfigProps {
 
 const KnowledgeConfig = ({ readonly }: KnowledgeConfigProps) => {
   const { language } = useLanguageStore()
-  const { bkn, updateBkn, deleteBkn } = useDigitalHumanStore()
+  const { bkn, appAccount, updateBkn, deleteBkn, updateAppAccount, deleteAppAccount } =
+    useDigitalHumanStore()
+  const [messageApi, contextHolder] = message.useMessage()
+  const [selectAppAccountModalOpen, setSelectAppAccountModalOpen] = useState(false)
+  const [createAppAccountModalOpen, setCreateAppAccountModalOpen] = useState(false)
   const [selectKnowledgeModalOpen, setSelectKnowledgeModalOpen] = useState(false)
+  const [policyModalOpen, setPolicyModalOpen] = useState(false)
+  const [pendingBkn, setPendingBkn] = useState<BknEntry[]>([])
+  const [pendingPolicyBkn, setPendingPolicyBkn] = useState<BknEntry[]>([])
 
   /** 选择知识网络 */
   const handleSelectKnowledge = () => {
+    if (!appAccount) {
+      setSelectAppAccountModalOpen(true)
+      return
+    }
+    setSelectKnowledgeModalOpen(true)
+  }
+
+  const openPolicyModalIfNeeded = async (account: AppAccount, nextBkn: BknEntry[]) => {
+    if (nextBkn.length === 0) {
+      updateBkn(nextBkn)
+      return
+    }
+
+    const result = await getAccessorPolicies({
+      accessor_id: account.id,
+      accessor_type: 'app',
+      resource_type: BKN_POLICY_RESOURCE_TYPE,
+      limit: -1,
+    })
+    const authorizedIds = new Set(
+      result.entries
+        .filter((policy) =>
+          policy.operation.allow.some((operation) => operation.id === BKN_QUERY_OPERATION_ID),
+        )
+        .map((policy) => policy.resource.id),
+    )
+    const unauthorizedBkn = nextBkn.filter((item) => !authorizedIds.has(item.id))
+    if (unauthorizedBkn.length === 0) {
+      updateBkn(nextBkn)
+      return
+    }
+
+    setPendingBkn(nextBkn)
+    setPendingPolicyBkn(unauthorizedBkn)
+    setPolicyModalOpen(true)
+  }
+
+  const handleSelectAppAccountResult = async (account: AppAccount) => {
+    try {
+      const token = await createAppToken({ id: account.id })
+      updateAppAccount(account, token.token)
+      setSelectAppAccountModalOpen(false)
+      if (bkn.length > 0) {
+        await openPolicyModalIfNeeded(account, bkn)
+        return
+      }
+      setSelectKnowledgeModalOpen(true)
+    } catch (err: any) {
+      messageApi.error(err?.description || intl.get('digitalHuman.appAccountModal.tokenFailed'))
+    }
+  }
+
+  const handleCreateAppAccountResult = (result: CreateAppAccountResult) => {
+    updateAppAccount(result.account, result.token)
+    setCreateAppAccountModalOpen(false)
+    setSelectAppAccountModalOpen(false)
     setSelectKnowledgeModalOpen(true)
   }
 
   /** 选择知识网络结果，写入 store */
-  const handleSelectKnowledgeResult = (result: BknKnowledgeNetworkInfo[]) => {
+  const handleSelectKnowledgeResult = async (result: BknKnowledgeNetworkInfo[]) => {
     const next: BknEntry[] = result.map((k) => ({
       name: k.name,
       id: k.id,
       comment: k.comment,
     }))
-    updateBkn(next)
+    if (!appAccount) {
+      setPendingBkn(next)
+      setSelectAppAccountModalOpen(true)
+      return
+    }
+
+    try {
+      await openPolicyModalIfNeeded(appAccount, next)
+    } catch (err: any) {
+      messageApi.error(err?.description || intl.get('digitalHuman.appPolicyModal.loadFailed'))
+    }
+  }
+
+  const handleDeleteAppAccount = () => {
+    Modal.confirm({
+      title: intl.get('digitalHuman.appAccountModal.deleteTitle'),
+      content: intl.get('digitalHuman.appAccountModal.deleteContent'),
+      okText: intl.get('digitalHuman.appAccountModal.deleteOk'),
+      cancelText: intl.get('global.cancel'),
+      okButtonProps: { danger: true },
+      onOk: deleteAppAccount,
+    })
   }
 
   // 知识表格列定义（备注列展示业务知识网络 comment）
@@ -91,6 +186,7 @@ const KnowledgeConfig = ({ readonly }: KnowledgeConfigProps) => {
 
   return (
     <ScrollBarContainer className="h-full flex flex-col p-6">
+      {contextHolder}
       <div className="flex justify-between mb-4">
         <div className="flex flex-col gap-y-1">
           <div className="font-medium text-[--dip-text-color]">
@@ -111,6 +207,30 @@ const KnowledgeConfig = ({ readonly }: KnowledgeConfigProps) => {
               {intl.get('digitalHuman.knowledge.addButton')}
             </Button>
           </div>
+        )}
+      </div>
+      <div className="mb-4 flex min-h-8 items-center gap-2">
+        {appAccount ? (
+          <>
+            <Tag className="m-0 max-w-[360px] truncate">
+              {intl.get('digitalHuman.appAccountModal.boundPrefix')}
+              {appAccount.name}
+            </Tag>
+            {!readonly && (
+              <>
+                <Button type="link" size="small" onClick={() => setSelectAppAccountModalOpen(true)}>
+                  {intl.get('digitalHuman.appAccountModal.switch')}
+                </Button>
+                <Button type="link" size="small" danger onClick={handleDeleteAppAccount}>
+                  {intl.get('digitalHuman.appAccountModal.delete')}
+                </Button>
+              </>
+            )}
+          </>
+        ) : (
+          <span className="text-[--dip-text-color-45]">
+            {intl.get('digitalHuman.appAccountModal.unbound')}
+          </span>
         )}
       </div>
       <Table<BknEntry>
@@ -140,12 +260,43 @@ const KnowledgeConfig = ({ readonly }: KnowledgeConfigProps) => {
         }}
       />
 
+      <SelectAppAccountModal
+        open={selectAppAccountModalOpen}
+        onOk={handleSelectAppAccountResult}
+        onCancel={() => setSelectAppAccountModalOpen(false)}
+        onCreate={() => setCreateAppAccountModalOpen(true)}
+        defaultSelectedId={appAccount?.id}
+      />
+
+      <CreateAppAccountModal
+        open={createAppAccountModalOpen}
+        onOk={handleCreateAppAccountResult}
+        onCancel={() => setCreateAppAccountModalOpen(false)}
+      />
+
       {/* 选择知识网络弹窗 */}
       <SelectKnowledgeModal
         open={selectKnowledgeModalOpen}
         onOk={handleSelectKnowledgeResult}
         onCancel={() => setSelectKnowledgeModalOpen(false)}
         defaultSelectedIds={bkn.map((item) => item.id) || []}
+      />
+
+      <ConfigureAppPolicyModal
+        open={policyModalOpen}
+        appAccountId={appAccount?.id}
+        networks={pendingPolicyBkn}
+        onOk={() => {
+          updateBkn(pendingBkn)
+          setPolicyModalOpen(false)
+          setPendingBkn([])
+          setPendingPolicyBkn([])
+        }}
+        onCancel={() => {
+          setPolicyModalOpen(false)
+          setPendingBkn([])
+          setPendingPolicyBkn([])
+        }}
       />
     </ScrollBarContainer>
   )

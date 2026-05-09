@@ -1,5 +1,11 @@
 import { create } from 'zustand'
-import type { BknEntry, ChannelConfig, DigitalHumanDetail, DigitalHumanSkill } from '@/apis'
+import type {
+  AppAccount,
+  BknEntry,
+  ChannelConfig,
+  DigitalHumanDetail,
+  DigitalHumanSkill,
+} from '@/apis'
 
 export type DigitalHumanUiMode = 'create' | 'edit' | 'view'
 
@@ -14,9 +20,20 @@ export type DigitalHumanBasic = Pick<DigitalHumanDetail, 'name' | 'creature' | '
 export type { BknEntry, ChannelConfig } from '@/apis'
 
 export const REMOVABLE_PRESET_SKILL_NAMES = new Set(['feishu-push'])
+export const REQUIRED_PRESET_SKILL_NAMES = new Set(['mcporter'])
+export const REQUIRED_PRESET_SKILLS: DigitalHumanSkill[] = [
+  {
+    name: 'mcporter',
+    built_in: false,
+    type: 'official',
+  },
+]
 
 const isRemovablePresetSkillName = (skillName: string) =>
   REMOVABLE_PRESET_SKILL_NAMES.has(skillName)
+
+export const isRequiredPresetSkillName = (skillName: string) =>
+  REQUIRED_PRESET_SKILL_NAMES.has(skillName)
 
 export interface DigitalHumanState {
   /** 当前页面编辑状态：新建/编辑/详情 */
@@ -33,6 +50,12 @@ export interface DigitalHumanState {
 
   /** 知识源列表（对齐 DigitalHumanExtension.bkn） */
   bkn: BknEntry[]
+
+  /** 本次配置选择的应用账户；详情接口不回显历史账户时保持为空 */
+  appAccount?: AppAccount
+
+  /** 本次配置生成的 KWeaver Token；undefined 表示不更新，null 表示删除 */
+  kweaverToken?: string | null
 
   /** 技能列表（用于渲染与编辑） */
   skills: DigitalHumanSkill[]
@@ -72,6 +95,10 @@ export interface DigitalHumanState {
   updateBkn: (patches: BknEntry[]) => void
   /** 删除单个知识源（按 id） */
   deleteBkn: (id: string) => void
+  /** 更新应用账户与运行时 Token */
+  updateAppAccount: (account: AppAccount, token: string) => void
+  /** 清除应用账户与 Token，同时清空知识范围 */
+  deleteAppAccount: () => void
   /** 更新技能目录名列表（整组替换） */
   updateSkills: (patches: DigitalHumanSkill[]) => void
   /** 合并默认预置技能到当前配置和详情快照，不标记 dirty */
@@ -107,11 +134,24 @@ const mergeSkillsByName = (
   return [...currentSkills, ...appendedSkills]
 }
 
+export const ensureRequiredPresetSkills = (skills: DigitalHumanSkill[]): DigitalHumanSkill[] =>
+  mergeSkillsByName(skills, REQUIRED_PRESET_SKILLS)
+
+export const ensureRequiredPresetSkillNames = (skillNames: string[]): string[] => {
+  const names = new Set(skillNames)
+  for (const skillName of REQUIRED_PRESET_SKILL_NAMES) {
+    names.add(skillName)
+  }
+  return Array.from(names)
+}
+
 export const useDigitalHumanStore = create<DigitalHumanState>()((set) => ({
   uiMode: 'create',
   digitalHumanId: undefined,
   basic: defaultBasic,
   bkn: defaultBkn,
+  appAccount: undefined,
+  kweaverToken: undefined,
   skills: defaultSkills,
   removedPresetSkillNames: [],
   channel: undefined,
@@ -134,6 +174,8 @@ export const useDigitalHumanStore = create<DigitalHumanState>()((set) => ({
         digitalHumanId: undefined,
         basic: defaultBasic,
         bkn: defaultBkn,
+        appAccount: undefined,
+        kweaverToken: undefined,
         skills: defaultSkills,
         removedPresetSkillNames: [],
         channel: undefined,
@@ -146,7 +188,7 @@ export const useDigitalHumanStore = create<DigitalHumanState>()((set) => ({
 
     set((state) => {
       const name = digitalHuman.name?.trim() ?? ''
-      const nextSkills = agentSkills ?? defaultSkills
+      const nextSkills = ensureRequiredPresetSkills(agentSkills ?? defaultSkills)
       const next = {
         digitalHumanId: digitalHuman.id,
         basic: {
@@ -155,6 +197,8 @@ export const useDigitalHumanStore = create<DigitalHumanState>()((set) => ({
           soul: digitalHuman.soul ?? '',
         },
         bkn: digitalHuman.bkn ?? defaultBkn,
+        appAccount: undefined,
+        kweaverToken: undefined,
         skills: nextSkills,
         removedPresetSkillNames: [],
         channel: digitalHuman.channel,
@@ -194,9 +238,25 @@ export const useDigitalHumanStore = create<DigitalHumanState>()((set) => ({
       dirty: true,
     })),
 
+  updateAppAccount: (account, token) =>
+    set({
+      appAccount: account,
+      kweaverToken: token,
+      dirty: true,
+    }),
+
+  deleteAppAccount: () =>
+    set({
+      appAccount: undefined,
+      kweaverToken: null,
+      bkn: defaultBkn,
+      dirty: true,
+    }),
+
   updateSkills: (patches) =>
     set((state) => {
-      const selectedSkillNames = new Set(patches.map((skill) => skill.name))
+      const nextPatches = ensureRequiredPresetSkills(patches)
+      const selectedSkillNames = new Set(nextPatches.map((skill) => skill.name))
       const removedPresetSkillNames = new Set(state.removedPresetSkillNames)
 
       for (const skillName of REMOVABLE_PRESET_SKILL_NAMES) {
@@ -211,7 +271,7 @@ export const useDigitalHumanStore = create<DigitalHumanState>()((set) => ({
       }
 
       return {
-        skills: patches,
+        skills: nextPatches,
         removedPresetSkillNames: Array.from(removedPresetSkillNames),
         dirty: true,
       }
@@ -220,8 +280,13 @@ export const useDigitalHumanStore = create<DigitalHumanState>()((set) => ({
   syncBuiltInSkills: (presetSkills) =>
     set((state) => {
       const removedPresetSkillNames = new Set(state.removedPresetSkillNames)
-      const syncablePresetSkills = presetSkills.filter(
-        (skill) => skill.built_in || !removedPresetSkillNames.has(skill.name),
+      const syncablePresetSkills = ensureRequiredPresetSkills(
+        presetSkills.filter(
+          (skill) =>
+            skill.built_in ||
+            isRequiredPresetSkillName(skill.name) ||
+            !removedPresetSkillNames.has(skill.name),
+        ),
       )
       const nextSkills = mergeSkillsByName(state.skills, syncablePresetSkills)
       const nextDetailSkills = mergeSkillsByName(
@@ -248,13 +313,19 @@ export const useDigitalHumanStore = create<DigitalHumanState>()((set) => ({
     }),
 
   deleteSkill: (skillName) =>
-    set((state) => ({
-      skills: state.skills.filter((s) => s.name !== skillName),
-      removedPresetSkillNames: isRemovablePresetSkillName(skillName)
-        ? Array.from(new Set([...state.removedPresetSkillNames, skillName]))
-        : state.removedPresetSkillNames,
-      dirty: true,
-    })),
+    set((state) => {
+      if (isRequiredPresetSkillName(skillName)) {
+        return state
+      }
+
+      return {
+        skills: state.skills.filter((s) => s.name !== skillName),
+        removedPresetSkillNames: isRemovablePresetSkillName(skillName)
+          ? Array.from(new Set([...state.removedPresetSkillNames, skillName]))
+          : state.removedPresetSkillNames,
+        dirty: true,
+      }
+    }),
 
   updateChannel: (channel) =>
     set({
@@ -276,7 +347,9 @@ export const useDigitalHumanStore = create<DigitalHumanState>()((set) => ({
         soul: state.detail?.soul ?? '',
       },
       bkn: state.detail?.bkn ?? defaultBkn,
-      skills: state.detail?.skills ?? defaultSkills,
+      appAccount: undefined,
+      kweaverToken: undefined,
+      skills: ensureRequiredPresetSkills(state.detail?.skills ?? defaultSkills),
       removedPresetSkillNames: [],
       channel: state.detail?.channel ?? undefined,
       dirty: false,
@@ -287,6 +360,8 @@ export const useDigitalHumanStore = create<DigitalHumanState>()((set) => ({
       digitalHumanId: undefined,
       basic: defaultBasic,
       bkn: defaultBkn,
+      appAccount: undefined,
+      kweaverToken: undefined,
       skills: defaultSkills,
       removedPresetSkillNames: [],
       channel: undefined,

@@ -123,6 +123,37 @@
       "updatedPrefix": "更新：",
       "tabAllNetworks": "全部业务知识网络"
     },
+    "appAccountModal": {
+      "title": "选择 KWeaver Token",
+      "subtitle": "请选择一个应用账户以关联业务知识网络",
+      "createTitle": "新建应用账户",
+      "searchPlaceholder": "搜索 Token",
+      "loadFailed": "加载失败",
+      "emptyNoAccount": "暂无应用账户",
+      "create": "新建",
+      "createFailed": "创建应用账户失败",
+      "tokenFailed": "获取应用账户令牌失败",
+      "nameLabel": "应用账户名称",
+      "nameRequired": "请输入应用账户名称",
+      "namePlaceholder": "请输入应用账户名称",
+      "boundPrefix": "应用账户：",
+      "unbound": "未配置应用账户，选择知识前需先配置",
+      "switch": "切换",
+      "delete": "删除",
+      "deleteTitle": "确定删除应用账户",
+      "deleteContent": "删除后，数字员工将无法访问已关联的业务知识网络，确定要删除吗？",
+      "deleteOk": "确定删除"
+    },
+    "appPolicyModal": {
+      "title": "配置应用账户权限",
+      "desc": "为应用账户授权所选业务知识网络的数据查询权限，有效期为永久有效。",
+      "operation": "权限类型",
+      "dataQuery": "数据查询",
+      "expiresAt": "有效期",
+      "permanent": "永久有效",
+      "loadFailed": "获取应用账户权限失败",
+      "saveFailed": "配置应用账户权限失败"
+    },
     "channel": {
       "sectionDesc": "配置数字员工可接入的通信通道，如钉钉、飞书等。",
       "columnChannelDesc": "通道描述",

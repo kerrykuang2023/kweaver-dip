@@ -17,7 +17,9 @@ vi.mock('@/stores/languageStore', () => ({
 }))
 
 vi.mock('../../digitalHumanStore', () => ({
+  isRequiredPresetSkillName: (skillName: string) => skillName === 'mcporter',
   REMOVABLE_PRESET_SKILL_NAMES: new Set(['feishu-push']),
+  REQUIRED_PRESET_SKILL_NAMES: new Set(['mcporter']),
   useDigitalHumanStore: vi.fn(),
 }))
 
@@ -307,9 +309,10 @@ describe('DigitalHumanSetting/SkillConfig', () => {
     expect(mockDeleteSkill).toHaveBeenCalledWith('feishu-push')
   })
 
-  it('编辑态进入技能配置时不会自动加载预置技能', () => {
+  it('编辑态进入技能配置时会补齐必选预置技能', async () => {
     mockedGetEnabledSkills.mockResolvedValue([
       { name: 'archive-protocol', built_in: true, type: 'official' },
+      { name: 'mcporter', built_in: false, type: 'official' },
       { name: 'feishu-push', built_in: false, type: 'official' },
     ] as any)
     mockedUseDigitalHumanStore.mockReturnValue({
@@ -323,7 +326,34 @@ describe('DigitalHumanSetting/SkillConfig', () => {
 
     render(<SkillConfig />)
 
-    expect(mockedGetEnabledSkills).not.toHaveBeenCalled()
-    expect(mockSyncBuiltInSkills).not.toHaveBeenCalled()
+    await waitFor(() => {
+      expect(mockSyncBuiltInSkills).toHaveBeenCalledWith([
+        { name: 'archive-protocol', built_in: true, type: 'official' },
+        { name: 'mcporter', built_in: false, type: 'official' },
+      ])
+    })
+  })
+
+  it('mcporter 必选技能删除按钮禁用', () => {
+    mockedUseDigitalHumanStore.mockReturnValue({
+      skills: [
+        {
+          name: 'mcporter',
+          description: 'MCP Porter',
+          built_in: false,
+          type: 'official',
+        },
+      ],
+      deleteSkill: mockDeleteSkill,
+      updateSkills: mockUpdateSkills,
+      syncBuiltInSkills: mockSyncBuiltInSkills,
+      digitalHumanId: 'test-id',
+    })
+
+    render(<SkillConfig />)
+
+    const buttons = screen.getAllByRole('button')
+    const deleteBtn = buttons.find((btn) => !btn.textContent?.trim())
+    expect(deleteBtn).toBeDisabled()
   })
 })

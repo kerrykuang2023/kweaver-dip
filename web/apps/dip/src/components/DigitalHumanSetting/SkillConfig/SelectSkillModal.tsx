@@ -11,6 +11,7 @@ import ScrollBarContainer from '@/components/ScrollBarContainer'
 import SearchInput from '@/components/SearchInput'
 import { useListService } from '@/hooks/useListService'
 import { DEFAULT_SKILL_ICON_COLORS, getMatchedColorByName } from '@/utils/handle-function'
+import { isRequiredPresetSkillName } from '../digitalHumanStore'
 import UploadSkill from './UploadSkill'
 
 export interface SelectSkillModalProps extends Omit<ModalProps, 'onCancel' | 'onOk'> {
@@ -87,6 +88,8 @@ const SelectSkillModal = ({
   const maxSelectCount = selectableSkills.length
 
   const toggleSelect = (skill: DigitalHumanSkill) => {
+    if (isRequiredPresetSkillName(skill.name)) return
+
     setSelectedSkills((prev) => {
       const exists = prev.some((x) => x.name === skill.name)
       if (exists) {
@@ -137,6 +140,7 @@ const SelectSkillModal = ({
       <div>
         {selectableSkills.map((item: DigitalHumanSkill, index: number) => {
           const isAdded = selectedSkills.some((x) => x.name === item.name)
+          const isRequired = isRequiredPresetSkillName(item.name)
           return (
             <div
               key={item.name}
@@ -173,8 +177,13 @@ const SelectSkillModal = ({
                   {isAdded ? (
                     <button
                       type="button"
-                      className="h-7 min-w-16 cursor-pointer rounded-md border border-[--dip-border-color] bg-[] px-3 text-[13px] leading-5 text-[--dip-text-color-45] transition-colors hover:bg-[var(--dip-hover-bg-color)]"
-                      title={intl.get('digitalHuman.skillModal.toggleDeselectTitle')}
+                      className="h-7 min-w-16 cursor-pointer rounded-md border border-[--dip-border-color] bg-[] px-3 text-[13px] leading-5 text-[--dip-text-color-45] transition-colors hover:bg-[var(--dip-hover-bg-color)] disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                      disabled={isRequired}
+                      title={
+                        isRequired
+                          ? intl.get('digitalHuman.skill.tooltipBuiltinSkill')
+                          : intl.get('digitalHuman.skillModal.toggleDeselectTitle')
+                      }
                       onClick={() => toggleSelect(item)}
                     >
                       {intl.get('digitalHuman.skillModal.added')}

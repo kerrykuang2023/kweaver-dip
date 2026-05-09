@@ -8,7 +8,12 @@ import IconFont from '@/components/IconFont'
 import ScrollBarContainer from '@/components/ScrollBarContainer'
 import { useLanguageStore } from '@/stores/languageStore'
 import { DEFAULT_SKILL_ICON_COLORS, getMatchedColorByName } from '@/utils/handle-function'
-import { REMOVABLE_PRESET_SKILL_NAMES, useDigitalHumanStore } from '../digitalHumanStore'
+import {
+  isRequiredPresetSkillName,
+  REMOVABLE_PRESET_SKILL_NAMES,
+  REQUIRED_PRESET_SKILL_NAMES,
+  useDigitalHumanStore,
+} from '../digitalHumanStore'
 import AddSkillDrawer from './AddSkillDrawer.tsx'
 import styles from './index.module.less'
 import SelectSkillModal from './SelectSkillModal'
@@ -30,7 +35,7 @@ const SkillConfig = ({ readonly }: SkillConfigProps) => {
   >(undefined)
 
   useEffect(() => {
-    if (readonly || uiMode !== 'create') return
+    if (readonly || uiMode === 'view') return
 
     let cancelled = false
 
@@ -40,7 +45,10 @@ const SkillConfig = ({ readonly }: SkillConfigProps) => {
         if (cancelled) return
         syncBuiltInSkills(
           enabledSkills.filter(
-            (skill) => skill.built_in || REMOVABLE_PRESET_SKILL_NAMES.has(skill.name),
+            (skill) =>
+              skill.built_in ||
+              REQUIRED_PRESET_SKILL_NAMES.has(skill.name) ||
+              (uiMode === 'create' && REMOVABLE_PRESET_SKILL_NAMES.has(skill.name)),
           ),
         )
       } catch {
@@ -125,14 +133,14 @@ const SkillConfig = ({ readonly }: SkillConfigProps) => {
           <Flex align="center">
             <Tooltip
               title={
-                record.built_in
+                record.built_in || isRequiredPresetSkillName(record.name)
                   ? intl.get('digitalHuman.skill.tooltipBuiltinSkill')
                   : intl.get('digitalHuman.common.remove')
               }
             >
               <Button
                 type="text"
-                disabled={record.built_in}
+                disabled={record.built_in || isRequiredPresetSkillName(record.name)}
                 onClick={(e) => {
                   e.stopPropagation()
                   handleMenuItemClick('delete', record)

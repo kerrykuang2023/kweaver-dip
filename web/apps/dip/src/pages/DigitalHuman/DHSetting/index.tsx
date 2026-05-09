@@ -11,7 +11,10 @@ import {
 import AppIcon from '@/components/AppIcon'
 import DigitalHumanSetting from '@/components/DigitalHumanSetting'
 import DeleteModal from '@/components/DigitalHumanSetting/ActionModal/DeleteModal'
-import { useDigitalHumanStore } from '@/components/DigitalHumanSetting/digitalHumanStore'
+import {
+  ensureRequiredPresetSkillNames,
+  useDigitalHumanStore,
+} from '@/components/DigitalHumanSetting/digitalHumanStore'
 import IconFont from '@/components/IconFont'
 import { useUserInfoStore } from '@/stores/userInfoStore'
 import { resolveDigitalHumanIconSrc } from '@/utils/digital-human/resolveDigitalHumanIcon'
@@ -35,6 +38,7 @@ const DHSetting = () => {
     digitalHumanId,
     detail,
     bkn,
+    kweaverToken,
     skills,
     channel,
     resetAllToDetail,
@@ -93,14 +97,16 @@ const DHSetting = () => {
     try {
       const creature = basic.creature?.trim() || undefined
       const soul = basic.soul?.trim() || undefined
+      const skillNames = ensureRequiredPresetSkillNames(skills.map((skill) => skill.name))
 
       const createBody: CreateDigitalHumanRequest = {
         name,
         ...(creature !== undefined ? { creature } : {}),
         ...(soul !== undefined ? { soul } : {}),
         icon_id: createAvatarId,
-        skills: skills.map((skill) => skill.name),
+        skills: skillNames,
         bkn,
+        ...(typeof kweaverToken === 'string' ? { kweaver_token: kweaverToken } : {}),
         ...(channel !== undefined ? { channel } : {}),
       }
 
@@ -109,8 +115,9 @@ const DHSetting = () => {
           name,
           ...(creature !== undefined ? { creature } : {}),
           ...(soul !== undefined ? { soul } : {}),
-          skills: skills.map((skill) => skill.name),
+          skills: skillNames,
           bkn,
+          ...(kweaverToken !== undefined ? { kweaver_token: kweaverToken } : {}),
           ...(channel !== undefined ? { channel } : {}),
         }
         await updateDigitalHuman(digitalHumanId, updateBody)

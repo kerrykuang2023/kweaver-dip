@@ -39,9 +39,15 @@ describe('DigitalHumanSetting/digitalHumanStore', () => {
     expect(state.digitalHumanId).toBe('dh-1')
     expect(state.basic).toEqual({ name: '员工A', creature: '简介A', soul: '灵魂A' })
     expect(state.bkn).toEqual([{ id: 'u1' }])
-    expect(state.skills).toEqual(skills)
+    expect(state.skills).toEqual([
+      ...skills,
+      { name: 'mcporter', built_in: false, type: 'official' },
+    ])
     expect(state.channel).toEqual({ type: 'feishu' })
-    expect(state.detail?.skills).toEqual(skills)
+    expect(state.detail?.skills).toEqual([
+      ...skills,
+      { name: 'mcporter', built_in: false, type: 'official' },
+    ])
     expect(state.dirty).toBe(false)
   })
 
@@ -52,14 +58,38 @@ describe('DigitalHumanSetting/digitalHumanStore', () => {
     store.updateSkills([{ name: 's1' }, { name: 's2' }] as any)
     store.deleteBkn('u1')
     store.deleteSkill('s2')
+    store.updateAppAccount({ id: 'app-1', name: '应用账户A', credential_type: 'token' }, 'token-1')
     store.updateChannel({ type: 'wechat' } as any)
     store.deleteChannel()
 
     const state = useDigitalHumanStore.getState()
     expect(state.basic.name).toBe('N')
     expect(state.bkn).toEqual([])
-    expect(state.skills).toEqual([{ name: 's1' }])
+    expect(state.skills).toEqual([
+      { name: 's1' },
+      { name: 'mcporter', built_in: false, type: 'official' },
+    ])
+    expect(state.appAccount).toEqual({
+      id: 'app-1',
+      name: '应用账户A',
+      credential_type: 'token',
+    })
+    expect(state.kweaverToken).toBe('token-1')
     expect(state.channel).toBeUndefined()
+    expect(state.dirty).toBe(true)
+  })
+
+  it('deleteAppAccount 会删除 token 并清空知识范围', () => {
+    const store = useDigitalHumanStore.getState()
+    store.updateBkn([{ id: 'u1' }] as any)
+    store.updateAppAccount({ id: 'app-1', name: '应用账户A', credential_type: 'token' }, 'token-1')
+
+    store.deleteAppAccount()
+
+    const state = useDigitalHumanStore.getState()
+    expect(state.appAccount).toBeUndefined()
+    expect(state.kweaverToken).toBeNull()
+    expect(state.bkn).toEqual([])
     expect(state.dirty).toBe(true)
   })
 
@@ -81,10 +111,12 @@ describe('DigitalHumanSetting/digitalHumanStore', () => {
     const state = useDigitalHumanStore.getState()
     expect(state.skills).toEqual([
       { name: '技能1', built_in: false },
+      { name: 'mcporter', built_in: false, type: 'official' },
       { name: '内置技能', built_in: true },
     ])
     expect(state.detail?.skills).toEqual([
       { name: '技能1', built_in: false },
+      { name: 'mcporter', built_in: false, type: 'official' },
       { name: '内置技能', built_in: true },
     ])
     expect(state.dirty).toBe(false)
@@ -99,7 +131,7 @@ describe('DigitalHumanSetting/digitalHumanStore', () => {
     store.syncBuiltInSkills([{ name: 'feishu-push', built_in: false }] as any)
 
     const state = useDigitalHumanStore.getState()
-    expect(state.skills).toEqual([])
+    expect(state.skills).toEqual([{ name: 'mcporter', built_in: false, type: 'official' }])
     expect(state.removedPresetSkillNames).toEqual(['feishu-push'])
     expect(state.dirty).toBe(false)
   })
@@ -112,7 +144,10 @@ describe('DigitalHumanSetting/digitalHumanStore', () => {
     store.updateSkills([{ name: 'feishu-push', built_in: false }] as any)
 
     const state = useDigitalHumanStore.getState()
-    expect(state.skills).toEqual([{ name: 'feishu-push', built_in: false }])
+    expect(state.skills).toEqual([
+      { name: 'feishu-push', built_in: false },
+      { name: 'mcporter', built_in: false, type: 'official' },
+    ])
     expect(state.removedPresetSkillNames).toEqual([])
     expect(state.dirty).toBe(true)
   })
@@ -138,7 +173,10 @@ describe('DigitalHumanSetting/digitalHumanStore', () => {
 
     expect(state.basic).toEqual({ name: '员工B', creature: '简介B', soul: '灵魂B' })
     expect(state.bkn).toEqual([{ id: 'u2' }])
-    expect(state.skills).toEqual(skills)
+    expect(state.skills).toEqual([
+      ...skills,
+      { name: 'mcporter', built_in: false, type: 'official' },
+    ])
     expect(state.dirty).toBe(false)
   })
 
@@ -150,5 +188,21 @@ describe('DigitalHumanSetting/digitalHumanStore', () => {
 
     store.setUiMode('view')
     expect(useDigitalHumanStore.getState().frozenDisplayNameForEdit).toBeNull()
+  })
+
+  it('mcporter 必选技能会保留且不可删除', () => {
+    const store = useDigitalHumanStore.getState()
+
+    store.updateSkills([{ name: 's1', built_in: false }] as any)
+    expect(useDigitalHumanStore.getState().skills).toEqual([
+      { name: 's1', built_in: false },
+      { name: 'mcporter', built_in: false, type: 'official' },
+    ])
+
+    store.deleteSkill('mcporter')
+    expect(useDigitalHumanStore.getState().skills).toEqual([
+      { name: 's1', built_in: false },
+      { name: 'mcporter', built_in: false, type: 'official' },
+    ])
   })
 })

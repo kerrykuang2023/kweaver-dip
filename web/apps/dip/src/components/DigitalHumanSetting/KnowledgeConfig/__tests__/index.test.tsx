@@ -5,6 +5,8 @@ import KnowledgeConfig from '../index'
 
 const mockUpdateBkn = vi.fn()
 const mockDeleteBkn = vi.fn()
+const mockUpdateAppAccount = vi.fn()
+const mockDeleteAppAccount = vi.fn()
 
 vi.mock('@/stores/languageStore', () => ({
   useLanguageStore: () => ({ language: 'zh-CN' }),
@@ -25,6 +27,11 @@ vi.mock('../SelectKnowledgeModal', () => ({
     open ? <div data-testid="select-knowledge-modal" /> : null,
 }))
 
+vi.mock('../SelectAppAccountModal', () => ({
+  default: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="select-app-account-modal" /> : null,
+}))
+
 vi.mock('@/components/AppIcon', () => ({
   default: ({ name }: { name: string }) => <span data-testid="app-icon">{name}</span>,
 }))
@@ -41,8 +48,11 @@ describe('DigitalHumanSetting/KnowledgeConfig', () => {
   it('应该正确渲染空状态，显示添加知识按钮', () => {
     mockedUseDigitalHumanStore.mockReturnValue({
       bkn: [],
+      appAccount: undefined,
       updateBkn: mockUpdateBkn,
       deleteBkn: mockDeleteBkn,
+      updateAppAccount: mockUpdateAppAccount,
+      deleteAppAccount: mockDeleteAppAccount,
     })
 
     render(<KnowledgeConfig />)
@@ -56,8 +66,11 @@ describe('DigitalHumanSetting/KnowledgeConfig', () => {
   it('只读模式空状态不显示添加按钮', () => {
     mockedUseDigitalHumanStore.mockReturnValue({
       bkn: [],
+      appAccount: undefined,
       updateBkn: mockUpdateBkn,
       deleteBkn: mockDeleteBkn,
+      updateAppAccount: mockUpdateAppAccount,
+      deleteAppAccount: mockDeleteAppAccount,
     })
 
     render(<KnowledgeConfig readonly />)
@@ -69,8 +82,11 @@ describe('DigitalHumanSetting/KnowledgeConfig', () => {
   it('已有知识时应该正确渲染表格', () => {
     mockedUseDigitalHumanStore.mockReturnValue({
       bkn: [{ name: '业务知识A', id: 'bkn-id-1', comment: '备注A' }],
+      appAccount: { id: 'app-1', name: '应用账户A' },
       updateBkn: mockUpdateBkn,
       deleteBkn: mockDeleteBkn,
+      updateAppAccount: mockUpdateAppAccount,
+      deleteAppAccount: mockDeleteAppAccount,
     })
 
     render(<KnowledgeConfig />)
@@ -85,8 +101,11 @@ describe('DigitalHumanSetting/KnowledgeConfig', () => {
   it('只读模式不显示操作列', () => {
     mockedUseDigitalHumanStore.mockReturnValue({
       bkn: [{ name: '业务知识A', id: 'bkn-id-1', comment: '备注A' }],
+      appAccount: { id: 'app-1', name: '应用账户A' },
       updateBkn: mockUpdateBkn,
       deleteBkn: mockDeleteBkn,
+      updateAppAccount: mockUpdateAppAccount,
+      deleteAppAccount: mockDeleteAppAccount,
     })
 
     render(<KnowledgeConfig readonly />)
@@ -99,8 +118,11 @@ describe('DigitalHumanSetting/KnowledgeConfig', () => {
   it('点击添加知识按钮应该打开弹窗', () => {
     mockedUseDigitalHumanStore.mockReturnValue({
       bkn: [{ name: '业务知识A', id: 'bkn-id-1', comment: '备注A' }],
+      appAccount: { id: 'app-1', name: '应用账户A' },
       updateBkn: mockUpdateBkn,
       deleteBkn: mockDeleteBkn,
+      updateAppAccount: mockUpdateAppAccount,
+      deleteAppAccount: mockDeleteAppAccount,
     })
 
     render(<KnowledgeConfig />)
@@ -109,24 +131,30 @@ describe('DigitalHumanSetting/KnowledgeConfig', () => {
     expect(screen.getByTestId('select-knowledge-modal')).toBeInTheDocument()
   })
 
-  it('空状态下点击添加知识应该打开弹窗', () => {
+  it('未配置应用账户时点击添加知识应该先打开应用账户弹窗', () => {
     mockedUseDigitalHumanStore.mockReturnValue({
       bkn: [],
+      appAccount: undefined,
       updateBkn: mockUpdateBkn,
       deleteBkn: mockDeleteBkn,
+      updateAppAccount: mockUpdateAppAccount,
+      deleteAppAccount: mockDeleteAppAccount,
     })
 
     render(<KnowledgeConfig />)
     fireEvent.click(screen.getByRole('button', { name: addKnowledgeBtnName }))
 
-    expect(screen.getByTestId('select-knowledge-modal')).toBeInTheDocument()
+    expect(screen.getByTestId('select-app-account-modal')).toBeInTheDocument()
   })
 
   it('点击移除按钮应该调用 deleteBkn', () => {
     mockedUseDigitalHumanStore.mockReturnValue({
       bkn: [{ name: '业务知识A', id: 'bkn-id-1', comment: '备注A' }],
+      appAccount: { id: 'app-1', name: '应用账户A' },
       updateBkn: mockUpdateBkn,
       deleteBkn: mockDeleteBkn,
+      updateAppAccount: mockUpdateAppAccount,
+      deleteAppAccount: mockDeleteAppAccount,
     })
 
     render(<KnowledgeConfig />)

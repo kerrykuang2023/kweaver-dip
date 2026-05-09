@@ -63,6 +63,8 @@ type DigitalHumanWriteBody = {
   /** 技能目录名列表 */
   skills?: string[]
   bkn?: BknEntry[]
+  /** KWeaver 应用账号 Token；写入后不会在详情或响应中回显 */
+  kweaver_token?: string
   channel?: ChannelConfig
 }
 
@@ -118,7 +120,10 @@ export type UpdateDigitalHumanResponse = CreateDigitalHumanResponse
  */
 export type UpdateDigitalHumanRequest = Partial<
   Pick<CreateDigitalHumanRequest, 'name' | 'creature' | 'soul' | 'skills' | 'bkn' | 'channel'>
->
+> & {
+  /** 非空字符串表示写入/替换；null 表示删除 Token，并由后端清空 BKN 范围 */
+  kweaver_token?: string | null
+}
 
 /** 数字员工响应请求；允许任意扩展字段 */
 export type DigitalHumanResponseRequest = Record<string, unknown>

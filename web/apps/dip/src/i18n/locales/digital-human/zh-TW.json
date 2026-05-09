@@ -123,6 +123,37 @@
       "updatedPrefix": "更新：",
       "tabAllNetworks": "全部業務知識網路"
     },
+    "appAccountModal": {
+      "title": "選擇 KWeaver Token",
+      "subtitle": "請選擇一個應用帳戶以關聯業務知識網路",
+      "createTitle": "新建應用帳戶",
+      "searchPlaceholder": "搜尋 Token",
+      "loadFailed": "載入失敗",
+      "emptyNoAccount": "暫無應用帳戶",
+      "create": "新建",
+      "createFailed": "建立應用帳戶失敗",
+      "tokenFailed": "取得應用帳戶令牌失敗",
+      "nameLabel": "應用帳戶名稱",
+      "nameRequired": "請輸入應用帳戶名稱",
+      "namePlaceholder": "請輸入應用帳戶名稱",
+      "boundPrefix": "應用帳戶：",
+      "unbound": "未設定應用帳戶，選擇知識前需先設定",
+      "switch": "切換",
+      "delete": "刪除",
+      "deleteTitle": "確定刪除應用帳戶",
+      "deleteContent": "刪除後，數位員工將無法存取已關聯的業務知識網路，確定要刪除嗎？",
+      "deleteOk": "確定刪除"
+    },
+    "appPolicyModal": {
+      "title": "設定應用帳戶權限",
+      "desc": "為應用帳戶授權所選業務知識網路的資料查詢權限，有效期為永久有效。",
+      "operation": "權限類型",
+      "dataQuery": "資料查詢",
+      "expiresAt": "有效期",
+      "permanent": "永久有效",
+      "loadFailed": "取得應用帳戶權限失敗",
+      "saveFailed": "設定應用帳戶權限失敗"
+    },
     "channel": {
       "sectionDesc": "設定數位員工可接入的通訊通道，如釘釘、飛書等。",
       "columnChannelDesc": "通道描述",
