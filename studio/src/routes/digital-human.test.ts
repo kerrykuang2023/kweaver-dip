@@ -62,7 +62,7 @@ type LogicMocks = Partial<{
   listBuiltInDigitalHumans: () => Promise<unknown>;
   createBuiltInDigitalHumans: (ids: string[], deps: unknown) => Promise<unknown>;
   listDigitalHumans: () => Promise<unknown>;
-  getDigitalHuman: (id: string) => Promise<unknown>;
+  getDigitalHuman: (id: string, bearerToken?: string) => Promise<unknown>;
   createDigitalHuman: (body: unknown) => Promise<unknown>;
   updateDigitalHuman: (id: string, patch: unknown) => Promise<unknown>;
   deleteDigitalHuman: (id: string, deleteFiles?: boolean) => Promise<void>;
@@ -259,12 +259,13 @@ describe("createDigitalHumanRouter", () => {
   });
 
   it("GET :id returns detail", async () => {
+    const getDigitalHuman = vi.fn().mockImplementation(async (id: string) => ({
+      id,
+      name: "N",
+      soul: "s"
+    }));
     const { createDigitalHumanRouter } = await importRouterWithLogicMock({
-      getDigitalHuman: async (id) => ({
-        id,
-        name: "N",
-        soul: "s"
-      })
+      getDigitalHuman
     });
     const router = createDigitalHumanRouter() as Router;
     const handler = findHandler(router, "get", detailPath);
@@ -272,7 +273,10 @@ describe("createDigitalHumanRouter", () => {
     const next = vi.fn<NextFunction>();
 
     await handler?.(
-      { params: { id: "a1" } } as unknown as Request,
+      {
+        params: { id: "a1" },
+        headers: { authorization: "Bearer user-token" }
+      } as unknown as Request,
       response,
       next
     );
@@ -283,6 +287,7 @@ describe("createDigitalHumanRouter", () => {
       name: "N",
       soul: "s"
     });
+    expect(getDigitalHuman).toHaveBeenCalledWith("a1", "user-token");
   });
 
   it("POST create returns 201", async () => {

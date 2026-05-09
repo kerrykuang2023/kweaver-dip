@@ -54,9 +54,10 @@ export interface DigitalHumanLogic {
    * and Feishu channel (when bound).
    *
    * @param id The digital human identifier.
+   * @param bearerToken Optional bearer token forwarded to BKN list requests.
    * @returns The detail payload (flat fields, no nested template).
    */
-  getDigitalHuman(id: string): Promise<DigitalHumanDetail>;
+  getDigitalHuman(id: string, bearerToken?: string): Promise<DigitalHumanDetail>;
 
   /**
    * Creates a new digital human with the full setup flow:
@@ -166,9 +167,13 @@ export class DefaultDigitalHumanLogic implements DigitalHumanLogic {
    * flat detail fields (name, creature, soul), plus BKN scope, skills and channel.
    *
    * @param id The digital human identifier.
+   * @param bearerToken Optional bearer token forwarded to BKN list requests.
    * @returns The detail payload.
    */
-  public async getDigitalHuman(id: string): Promise<DigitalHumanDetail> {
+  public async getDigitalHuman(
+    id: string,
+    bearerToken?: string
+  ): Promise<DigitalHumanDetail> {
     let identityContent: string;
     let soulContent: string;
     try {
@@ -189,7 +194,7 @@ export class DefaultDigitalHumanLogic implements DigitalHumanLogic {
     }
 
     const template = mergeFilesToTemplate(identityContent, soulContent);
-    const bkn = await this.readBknEntries(id);
+    const bkn = await this.readBknEntries(id, bearerToken);
     let skills: string[] | undefined;
     try {
       const binding = await this.agentSkillsLogic.getAgentSkills(id);
@@ -563,9 +568,13 @@ export class DefaultDigitalHumanLogic implements DigitalHumanLogic {
    * Reads BKN entries from RDS.
    *
    * @param agentId Digital employee id, equal to the OpenClaw agent id.
+   * @param bearerToken Optional bearer token forwarded to BKN list requests.
    * @returns BKN entries for API responses.
    */
-  private async readBknEntries(agentId: string): Promise<BknEntry[] | undefined> {
+  private async readBknEntries(
+    agentId: string,
+    bearerToken?: string
+  ): Promise<BknEntry[] | undefined> {
     if (this.digitalEmployeeTokenAdapter === undefined) {
       return undefined;
     }
@@ -577,7 +586,11 @@ export class DefaultDigitalHumanLogic implements DigitalHumanLogic {
       return undefined;
     }
 
-    const result = await this.bknLogic.listKnowledgeNetworks({ limit: "-1" });
+    const result = await this.bknLogic.listKnowledgeNetworks(
+      { limit: "-1" },
+      undefined,
+      bearerToken
+    );
     const networks = parseKnowledgeNetworkListResponse(result.body);
     const networksById = new Map(networks.map((network) => [network.id, network]));
 
@@ -624,6 +637,7 @@ function deserializeBknScopeIds(bknScope: string | undefined): string[] {
 
 interface BknListResponseBody {
   entries?: unknown;
+  items?: unknown;
 }
 
 interface BknKnowledgeNetworkBody {
@@ -640,12 +654,13 @@ interface BknKnowledgeNetworkBody {
  */
 function parseKnowledgeNetworkListResponse(body: string): BknEntry[] {
   const parsed = JSON.parse(body) as BknListResponseBody;
+  const entries = Array.isArray(parsed.entries)
+    ? parsed.entries
+    : Array.isArray(parsed.items)
+      ? parsed.items
+      : [];
 
-  if (!Array.isArray(parsed.entries)) {
-    return [];
-  }
-
-  return parsed.entries
+  return entries
     .map((entry): BknEntry | undefined => {
       if (typeof entry !== "object" || entry === null) {
         return undefined;

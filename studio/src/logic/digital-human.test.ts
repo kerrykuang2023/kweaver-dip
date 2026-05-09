@@ -302,7 +302,7 @@ describe("DefaultDigitalHumanLogic lifecycle (filesystem + adapter)", () => {
       headers: new Headers(),
       body: JSON.stringify({
         entries: [
-          { id: "kn-1", name: "Knowledge 1", comment: "Comment 1" },
+          { id: "kn-1", name: "Knowledge 1", comment: "Comment 1", tag: "ignored" },
           { id: "kn-2", name: "Knowledge 2", comment: "Comment 2" }
         ],
         total_count: 2
@@ -327,12 +327,58 @@ describe("DefaultDigitalHumanLogic lifecycle (filesystem + adapter)", () => {
       bknLogic: stubBknLogic({ listKnowledgeNetworks })
     });
 
-    await expect(logic.getDigitalHuman(id)).resolves.toMatchObject({
+    await expect(logic.getDigitalHuman(id, "user-token")).resolves.toMatchObject({
       id,
       bkn: [{ id: "kn-1", name: "Knowledge 1", comment: "Comment 1" }]
     });
     expect(tokenAdapter.findBknScope).toHaveBeenCalledWith(id);
-    expect(listKnowledgeNetworks).toHaveBeenCalledWith({ limit: "-1" });
+    expect(listKnowledgeNetworks).toHaveBeenCalledWith(
+      { limit: "-1" },
+      undefined,
+      "user-token"
+    );
+  });
+
+  it("getDigitalHuman intersects RDS BKN ids with items from knowledge networks", async () => {
+    const id = "agent-bkn-items";
+    const ws = resolveDefaultWorkspace(id);
+    mkdirSync(ws, { recursive: true });
+    writeFileSync(join(ws, "IDENTITY.md"), "- Name: Alice\n", "utf8");
+    writeFileSync(join(ws, "SOUL.md"), "Soul text\n", "utf8");
+    const listKnowledgeNetworks = vi.fn().mockResolvedValue({
+      status: 200,
+      headers: new Headers(),
+      body: JSON.stringify({
+        items: [
+          { id: "kn-2", name: "Knowledge 2", comment: "Comment 2", owner: "ignored" },
+          { id: "kn-3", name: "Knowledge 3", comment: "Comment 3" }
+        ],
+        total: 2
+      })
+    });
+    const logic = new DefaultDigitalHumanLogic({
+      openClawAgentsAdapter: {
+        listAgents: vi.fn(),
+        createAgent: vi.fn(),
+        deleteAgent: vi.fn(),
+        getAgentFile: vi.fn().mockImplementation(async ({ name }: { name: string }) => ({
+          file: { content: readFileSync(join(ws, name), "utf8") }
+        })),
+        setAgentFile: vi.fn(),
+        getConfig: vi.fn(),
+        patchConfig: vi.fn()
+      } as never,
+      openClawCronAdapter: stubCronAdapter(),
+      agentSkillsLogic: stubAgentSkills(),
+      digitalEmployeeTokenAdapter: stubDigitalEmployeeTokenAdapter({
+        findBknScope: vi.fn().mockResolvedValue("kn-1,kn-2")
+      }),
+      bknLogic: stubBknLogic({ listKnowledgeNetworks })
+    });
+
+    await expect(logic.getDigitalHuman(id)).resolves.toMatchObject({
+      bkn: [{ id: "kn-2", name: "Knowledge 2", comment: "Comment 2" }]
+    });
   });
 
   it("normalizeOpenClawAccountIdFromAppId lowercases valid Feishu-style app ids", () => {

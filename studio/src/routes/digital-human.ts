@@ -34,6 +34,7 @@ import type {
   DigitalHumanChannelType,
   UpdateDigitalHumanRequest
 } from "../types/digital-human";
+import { readOptionalBearerToken } from "./proxy-auth";
 
 const KWEAVER_TOKEN_MAX_LENGTH = 255;
 const env = getEnv();
@@ -380,7 +381,10 @@ export function createDigitalHumanRouter(): Router {
     ): Promise<void> => {
       try {
         const id = resolveIdParam(request.params.id);
-        const result = await digitalHumanLogic.getDigitalHuman(id);
+        const result = await digitalHumanLogic.getDigitalHuman(
+          id,
+          readOptionalBearerToken(request)
+        );
 
         response.status(200).json(result);
       } catch (error) {
