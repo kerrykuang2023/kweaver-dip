@@ -1,5 +1,12 @@
 import './public-path';
 import ReactDOM from 'react-dom/client';
+import dayjs from 'dayjs';
+import advancedFormat from 'dayjs/plugin/advancedFormat';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+import localeData from 'dayjs/plugin/localeData';
+import weekOfYear from 'dayjs/plugin/weekOfYear';
+import weekYear from 'dayjs/plugin/weekYear';
+import weekday from 'dayjs/plugin/weekday';
 
 import UTILS from './utils';
 import '@/styles/reset.less';
@@ -8,6 +15,13 @@ import 'react-resizable/css/styles.css';
 import { baseConfig } from '@/services/request';
 import App from './pages/router';
 import Plugins_ModelUsage_App from './plugins/ModelUsage/router'
+
+dayjs.extend(customParseFormat);
+dayjs.extend(advancedFormat);
+dayjs.extend(weekday);
+dayjs.extend(localeData);
+dayjs.extend(weekOfYear);
+dayjs.extend(weekYear);
 
 const originalError = console.error;
 console.error = (...args) => {
