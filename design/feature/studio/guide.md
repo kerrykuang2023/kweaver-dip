@@ -24,13 +24,13 @@ opt 配置 OpenClaw 连接信息
   end
 
   alt 未配置 OpenClaw 连接
+    BE ->> OC: 从 openclaw.json 中读取 gateway.port 和 gateway.auth.token
       alt 使用外置 OpenClaw
-        SW ->> SW: 填充 OpenClaw 网关地址：ws://<hostIP>:19001
+        SW ->> SW: 填充 OpenClaw 网关地址：ws://<hostIP>:<gateway.port>
       end
       alt 使用内置 OpenClaw
-        SW ->> SW: 填充 OpenClaw 网关地址：ws://127.0.0.1:19001
+        SW ->> SW: 填充 OpenClaw 网关地址：ws://127.0.0.1:<gateway.port>
       end
-    BE ->> OC: 从 openclaw.json 中读取 gateway.auth.token 字段
     BE ->> SW: 填充 OpenClaw 网关 Token
     BE ->> SW: 填充 KWeaver 默认 SVC 地址：http://bkn-backend-svc:13014
   end

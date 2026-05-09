@@ -109,6 +109,21 @@ export interface GuideCommandResult {
 }
 
 /**
+ * OpenClaw gateway config values loaded from openclaw.json.
+ */
+export interface OpenClawGatewayFileConfig {
+  /**
+   * Gateway listening port.
+   */
+  port: number;
+
+  /**
+   * Gateway auth token.
+   */
+  token: string;
+}
+
+/**
  * Abstraction for running local shell commands.
  */
 export interface GuideCommandRunner {
@@ -443,7 +458,7 @@ export function resolveInjectedPath(
  *
  * @param options Environment, OpenClaw config path, and optional request host.
  * @returns The resolved gateway configuration.
- * @throws {HttpError} Thrown when required variables or OpenClaw token are missing.
+ * @throws {HttpError} Thrown when required variables or OpenClaw gateway config are missing.
  */
 export async function readOpenClawDetectedConfig(options: {
   envSource: NodeJS.ProcessEnv;
@@ -461,13 +476,23 @@ export async function readOpenClawDetectedConfig(options: {
   }
 
   const configuredToken = readOptionalString(options.envSource.OPENCLAW_GATEWAY_TOKEN);
-  const openclawAddress =
-    configuredToken === undefined
-      ? resolveDefaultOpenClawGatewayAddress(options.envSource, options.requestHost)
-      : resolveConfiguredOpenClawGatewayAddress(options.envSource);
-  const openclawToken =
-    configuredToken ??
-    await readOpenClawGatewayTokenFromConfig(options.openClawConfigPath);
+  let openclawAddress: string;
+  let openclawToken: string;
+
+  if (configuredToken === undefined) {
+    const gatewayFileConfig = await readOpenClawGatewayConfigFromConfig(
+      options.openClawConfigPath
+    );
+    openclawAddress = resolveDefaultOpenClawGatewayAddress(
+      options.envSource,
+      options.requestHost,
+      gatewayFileConfig.port
+    );
+    openclawToken = gatewayFileConfig.token;
+  } else {
+    openclawAddress = resolveConfiguredOpenClawGatewayAddress(options.envSource);
+    openclawToken = configuredToken;
+  }
 
   return {
     openclaw_address: openclawAddress,
@@ -517,18 +542,20 @@ export function resolveConfiguredOpenClawGatewayAddress(
  *
  * @param envSource Environment variable source.
  * @param requestHost Host observed from the HTTP request.
+ * @param gatewayPort Port loaded from OpenClaw gateway config.
  * @returns The default OpenClaw Gateway WebSocket URL.
  */
 export function resolveDefaultOpenClawGatewayAddress(
   envSource: NodeJS.ProcessEnv,
-  requestHost?: string
+  requestHost?: string,
+  gatewayPort: number = 19_001
 ): string {
   const host = isExternalOpenClawEnabled(envSource.USE_EXTERNAL_OPENCLAW)
     ? resolveExternalOpenClawHost(requestHost)
     : "127.0.0.1";
   const normalizedHost = host.includes(":") ? `[${host}]` : host;
 
-  return trimTrailingGatewaySlash(buildGatewayUrl("ws", normalizedHost, 19_001));
+  return trimTrailingGatewaySlash(buildGatewayUrl("ws", normalizedHost, gatewayPort));
 }
 
 /**
@@ -542,6 +569,42 @@ export function trimTrailingGatewaySlash(address: string): string {
 }
 
 /**
+ * Reads the gateway port and token persisted by OpenClaw.
+ *
+ * @param configPath OpenClaw config file path.
+ * @returns The gateway port and token.
+ * @throws {HttpError} Thrown when the config file cannot provide gateway values.
+ */
+export async function readOpenClawGatewayConfigFromConfig(
+  configPath: string
+): Promise<OpenClawGatewayFileConfig> {
+  const config = await readOpenClawConfigFile(configPath);
+  const port = extractOpenClawGatewayPort(config);
+  const token = extractOpenClawGatewayToken(config);
+
+  if (port === undefined) {
+    throw new HttpError(
+      500,
+      "OpenClaw gateway port is missing from openclaw.json",
+      "OPENCLAW_GATEWAY_PORT_NOT_FOUND"
+    );
+  }
+
+  if (token === undefined) {
+    throw new HttpError(
+      500,
+      "OpenClaw gateway token is missing from openclaw.json",
+      "OPENCLAW_GATEWAY_TOKEN_NOT_FOUND"
+    );
+  }
+
+  return {
+    port,
+    token
+  };
+}
+
+/**
  * Reads the gateway token persisted by OpenClaw.
  *
  * @param configPath OpenClaw config file path.
@@ -551,18 +614,7 @@ export function trimTrailingGatewaySlash(address: string): string {
 export async function readOpenClawGatewayTokenFromConfig(
   configPath: string
 ): Promise<string> {
-  let config: unknown;
-
-  try {
-    config = JSON.parse(await readFile(configPath, "utf8"));
-  } catch {
-    throw new HttpError(
-      500,
-      "OpenClaw gateway token is missing from openclaw.json",
-      "OPENCLAW_CONFIG_NOT_FOUND"
-    );
-  }
-
+  const config = await readOpenClawConfigFile(configPath);
   const token = extractOpenClawGatewayToken(config);
 
   if (token === undefined) {
@@ -577,24 +629,63 @@ export async function readOpenClawGatewayTokenFromConfig(
 }
 
 /**
+ * Reads and parses openclaw.json.
+ *
+ * @param configPath OpenClaw config file path.
+ * @returns The parsed config value.
+ * @throws {HttpError} Thrown when the config file is missing or invalid.
+ */
+export async function readOpenClawConfigFile(configPath: string): Promise<unknown> {
+  try {
+    return JSON.parse(await readFile(configPath, "utf8"));
+  } catch {
+    throw new HttpError(
+      500,
+      "OpenClaw gateway config is missing from openclaw.json",
+      "OPENCLAW_CONFIG_NOT_FOUND"
+    );
+  }
+}
+
+/**
+ * Extracts the gateway port from `gateway.port`.
+ *
+ * @param config Parsed OpenClaw config object.
+ * @returns The port when present and valid.
+ */
+export function extractOpenClawGatewayPort(config: unknown): number | undefined {
+  const gateway = readOpenClawGatewayRecord(config);
+
+  if (gateway === undefined) {
+    return undefined;
+  }
+
+  const port = gateway.port;
+
+  if (typeof port === "number" && Number.isInteger(port) && port > 0) {
+    return port;
+  }
+
+  if (typeof port === "string" && /^[1-9]\d*$/.test(port.trim())) {
+    return Number.parseInt(port.trim(), 10);
+  }
+
+  return undefined;
+}
+
+/**
  * Extracts the gateway token from `gateway.auth.token`.
  *
  * @param config Parsed OpenClaw config object.
  * @returns The token when present.
  */
 export function extractOpenClawGatewayToken(config: unknown): string | undefined {
-  if (typeof config !== "object" || config === null || Array.isArray(config)) {
+  const gatewayRecord = readOpenClawGatewayRecord(config);
+
+  if (gatewayRecord === undefined) {
     return undefined;
   }
 
-  const root = config as Record<string, unknown>;
-  const gateway = root.gateway;
-
-  if (typeof gateway !== "object" || gateway === null || Array.isArray(gateway)) {
-    return undefined;
-  }
-
-  const gatewayRecord = gateway as Record<string, unknown>;
   const auth = gatewayRecord.auth;
 
   if (typeof auth !== "object" || auth === null || Array.isArray(auth)) {
@@ -604,6 +695,28 @@ export function extractOpenClawGatewayToken(config: unknown): string | undefined
   const authToken = (auth as Record<string, unknown>).token;
 
   return typeof authToken === "string" ? readOptionalString(authToken) : undefined;
+}
+
+/**
+ * Reads the `gateway` object from a parsed OpenClaw config.
+ *
+ * @param config Parsed OpenClaw config object.
+ * @returns The gateway record when present.
+ */
+export function readOpenClawGatewayRecord(
+  config: unknown
+): Record<string, unknown> | undefined {
+  if (typeof config !== "object" || config === null || Array.isArray(config)) {
+    return undefined;
+  }
+
+  const gateway = (config as Record<string, unknown>).gateway;
+
+  if (typeof gateway !== "object" || gateway === null || Array.isArray(gateway)) {
+    return undefined;
+  }
+
+  return gateway as Record<string, unknown>;
 }
 
 /**

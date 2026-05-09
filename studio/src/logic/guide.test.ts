@@ -28,6 +28,7 @@ import {
   collectMissingRequirements,
   DefaultGuideLogic,
   encodeEnvValue,
+  extractOpenClawGatewayPort,
   mergeOpenClawRootEnv,
   normalizeInitializeGuideRequest,
   parseOpenClawAddress,
@@ -35,6 +36,7 @@ import {
   openClawRootEnvEntriesNeedUpdate,
   readOpenClawDetectedConfig,
   readOpenClawDetectedConfigFromEnv,
+  readOpenClawGatewayConfigFromConfig,
   readOpenClawGatewayTokenFromConfig,
   refreshOpenClawRuntimeEnv,
   resolveDefaultOpenClawGatewayAddress,
@@ -78,12 +80,12 @@ describe("readOpenClawDetectedConfigFromEnv", () => {
     });
   });
 
-  it("reads fallback gateway token from openclaw.json", async () => {
+  it("reads fallback gateway port and token from openclaw.json", async () => {
     const rootDir = await mkdtemp(join(tmpdir(), "dip-openclaw-config-"));
     const configPath = join(rootDir, "openclaw.json");
     await writeFile(
       configPath,
-      JSON.stringify({ gateway: { auth: { token: "config-token" } } }),
+      JSON.stringify({ gateway: { port: 18789, auth: { token: "config-token" } } }),
       "utf8"
     );
 
@@ -96,10 +98,53 @@ describe("readOpenClawDetectedConfigFromEnv", () => {
         requestHost: "studio.example.com:3000"
       })
     ).resolves.toEqual({
-      openclaw_address: "ws://studio.example.com:19001",
+      openclaw_address: "ws://studio.example.com:18789",
       openclaw_token: "config-token",
       kweaver_base_url: "http://bkn-backend-svc:13014"
     });
+
+    await expect(readOpenClawGatewayConfigFromConfig(configPath)).resolves.toEqual({
+      port: 18789,
+      token: "config-token"
+    });
+
+    await rm(rootDir, { recursive: true, force: true });
+  });
+
+  it("reads string gateway port from openclaw.json", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "dip-openclaw-config-"));
+    const configPath = join(rootDir, "openclaw.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({ gateway: { port: "18790", auth: { token: "config-token" } } }),
+      "utf8"
+    );
+
+    await expect(readOpenClawGatewayConfigFromConfig(configPath)).resolves.toEqual({
+      port: 18790,
+      token: "config-token"
+    });
+    expect(extractOpenClawGatewayPort({ gateway: { port: "bad" } })).toBeUndefined();
+
+    await rm(rootDir, { recursive: true, force: true });
+  });
+
+  it("rejects missing gateway port from openclaw.json", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "dip-openclaw-config-"));
+    const configPath = join(rootDir, "openclaw.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({ gateway: { auth: { token: "config-token" } } }),
+      "utf8"
+    );
+
+    await expect(readOpenClawGatewayConfigFromConfig(configPath)).rejects.toThrowError(
+      new HttpError(
+        500,
+        "OpenClaw gateway port is missing from openclaw.json",
+        "OPENCLAW_GATEWAY_PORT_NOT_FOUND"
+      )
+    );
 
     await rm(rootDir, { recursive: true, force: true });
   });
@@ -133,7 +178,7 @@ describe("readOpenClawDetectedConfigFromEnv", () => {
     ).rejects.toThrowError(
       new HttpError(
         500,
-        "OpenClaw gateway token is missing from openclaw.json",
+        "OpenClaw gateway config is missing from openclaw.json",
         "OPENCLAW_CONFIG_NOT_FOUND"
       )
     );
@@ -153,9 +198,10 @@ describe("readOpenClawDetectedConfigFromEnv", () => {
     expect(
       resolveDefaultOpenClawGatewayAddress(
         { USE_EXTERNAL_OPENCLAW: "true" },
-        "[::1]:3000"
+        "[::1]:3000",
+        18789
       )
-    ).toBe("ws://[::1]:19001");
+    ).toBe("ws://[::1]:18789");
   });
 });
 
