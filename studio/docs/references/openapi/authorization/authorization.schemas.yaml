@@ -1,0 +1,2221 @@
+components:
+  schemas:
+    Error:
+      description: 接口调用错误信息结构基类，具体错误情况可查看字段description，错误码的类型为字符串
+      required:
+      - code
+      - description
+      type: object
+      properties:
+        code:
+          description: '业务错误码。公共错误码分为两段，以“.”分隔。第一段为“Public”，第二段为错误标识，使用对应HTTP状态码的英文解释。具体错误码分为三段，以“.”分隔。第一段为服务名；第二段为错误标识，使用对应HTTP状态码的英文解释；第三段为错误说明。
+
+'
+          type: string
+        description:
+          description: 错误描述。描述该错误出现的场景及可能的原因
+          type: string
+        solution:
+          description: 错误处理建议。导致此错误的原因，也可用于给接口调用者提示解决此错误的办法。
+          type: string
+        detail:
+          description: 错误辅助信息，记录诊断分析该错误所需要的其他额外必须信息。
+          type: object
+        link:
+          description: 错误信息地址
+          type: string
+    ResourceTypeRoles:
+      description: 资源类型角色列表
+      required:
+      - entries
+      - total_count
+      type: object
+      properties:
+        entries:
+          description: 角色条目列表
+          type: array
+          items:
+            "$ref": "#/components/schemas/ResourceTypeRole"
+        total_count:
+          format: int64
+          description: 总条目数（忽略offset和limit）
+          type: integer
+      example:
+        entries:
+        - id: asd258sd-as58=69sd-458sds58s58d
+          name: 数据管理员
+          description: 接入和管理数据
+        - id: asd258sd-as58=69sd-458sds58s58d
+          name: AI 管理员
+          description: 接入和管理AI
+        total_count: 2
+    ResourceTypeRole:
+      description: 角色信息
+      required:
+      - id
+      - name
+      - description
+      type: object
+      properties:
+        name:
+          description: 角色名称，唯一
+          type: string
+        id:
+          description: 角色唯一标识
+          type: string
+        description:
+          description: 描述
+          type: string
+      example:
+        id: asd258sd-as58=69sd-458sds58s58d
+        name: 数据管理员
+        description: 接入和管理数据
+    Roles:
+      description: 角色列表
+      required:
+      - entries
+      - total_count
+      type: object
+      properties:
+        entries:
+          description: 角色条目列表
+          type: array
+          items:
+            "$ref": "#/components/schemas/Role"
+        total_count:
+          format: int64
+          description: 总条目数（忽略offset和limit）
+          type: integer
+      example:
+        entries:
+        - id: asd258sd-as58=69sd-458sds58s58d
+          name: 数据管理员
+          description: 接入和管理数据
+          resource_type_scope:
+            unlimited: false
+            types:
+            - id: doc
+              name: 文档
+        - id: asd258sd-as58=69sd-458sds58s58d
+          name: AI 管理员
+          description: 接入和管理AI
+          resource_type_scope:
+            unlimited: true
+            types: []
+        total_count: 2
+    Role:
+      description: 角色信息
+      required:
+      - id
+      - name
+      - source
+      - description
+      - resource_type_scope
+      type: object
+      properties:
+        name:
+          description: 角色名称，唯一
+          type: string
+        id:
+          description: 角色唯一标识
+          type: string
+        source:
+          description: "角色来源\r\n\r\n - `system` 系统\r\n- `business` 业务内置\r\n- `user`
+            用户自定义"
+          enum:
+          - system
+          - business
+          - user
+          type: string
+        resource_type_scope:
+          description: 资源类型范围
+          type: object
+          required:
+          - unlimited
+          - types
+          properties:
+            unlimited:
+              description: 是否无限制
+              type: boolean
+            types:
+              description: 资源类型列表
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                - name
+                properties:
+                  id:
+                    description: 资源类型唯一标识
+                    type: string
+                  name:
+                    description: 资源类型名称
+                    type: string
+        description:
+          description: 描述
+          type: string
+      example:
+        id: asd258sd-as58=69sd-458sds58s58d
+        name: 数据管理员
+        source: business
+        description: 接入和管理数据
+        resource_type_scope:
+          unlimited: false
+          types:
+          - id: doc
+            name: 文档
+    RoleWithResourceInfo:
+      description: 角色信息
+      required:
+      - id
+      - name
+      - source
+      - description
+      - resource_type_scope
+      type: object
+      properties:
+        name:
+          description: 角色名称，唯一
+          type: string
+        id:
+          description: 角色唯一标识
+          type: string
+        source:
+          description: "角色来源\r\n\r\n - `system` 系统\r\n- `business` 业务内置\r\n- `user`
+            用户自定义"
+          enum:
+          - system
+          - business
+          - user
+          type: string
+        description:
+          description: 描述
+          type: string
+        resource_type_scope:
+          description: 资源类型范围
+          type: object
+          required:
+          - unlimited
+          - types
+          properties:
+            unlimited:
+              description: 是否无限制
+              type: boolean
+            types:
+              description: 资源类型范围
+              type: array
+              items:
+                "$ref": "#/components/schemas/RoleResourceType"
+      example:
+        id: asd258sd-as58=69sd-458sds58s58d
+        name: 数据管理员
+        description: 接入和管理数据
+        source: business
+        resource_type_scope:
+          unlimited: false
+          types:
+          - id: doc
+            name: 文档
+            instance_url: GET /api/document/v1/docs
+            data_struct: string
+            operation:
+              type:
+              - id: create
+                name: 创建
+                description: 创建文档
+              instance:
+              - id: display
+                name: 显示
+                description: 显示文档
+    RoleResourceType:
+      description: 角色资源类型
+      type: object
+      required:
+      - id
+      - name
+      - instance_url
+      - data_struct
+      - operation
+      properties:
+        id:
+          description: 资源类型唯一标识
+          type: string
+        name:
+          description: 资源类型名称
+          type: string
+        instance_url:
+          description: 资源实例URL
+          type: string
+        data_struct:
+          description: 资源类型数据结构
+          type: string
+        operation:
+          description: 资源操作
+          type: object
+          properties:
+            type:
+              description: 资源类型操作
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    description: 操作唯一ID
+                    type: string
+                  name:
+                    description: 操作名称
+                    type: string
+                  description:
+                    description: 操作描述
+                    type: string
+            instance:
+              description: 资源实例操作
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    description: 操作唯一ID
+                    type: string
+                  name:
+                    description: 操作名称
+                    type: string
+                  description:
+                    description: 操作描述
+                    type: string
+        children:
+          description: 子资源类型
+          type: array
+          items:
+            type: object
+            "$ref": "#/components/schemas/RoleResourceType"
+    CreateRoleInfo:
+      description: 创建角色信息
+      required:
+      - name
+      - resource_type_scope
+      type: object
+      properties:
+        name:
+          description: 角色名称
+          type: string
+        description:
+          description: 描述，默认为空
+          type: string
+        resource_type_scope:
+          description: 资源类型范围
+          type: object
+          required:
+          - unlimited
+          properties:
+            unlimited:
+              description: 是否无限制
+              type: boolean
+            types:
+              description: "资源类型列表 \r\n\r\n unlimited为false时，types数组表示角色的资源类型范围"
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                properties:
+                  id:
+                    description: 资源类型唯一标识
+                    type: string
+      example:
+        name: 数据管理员
+        description: 接入和管理数据
+        resource_type_scope:
+          unlimited: false
+          types:
+          - id: doc
+    RoleIDInfo:
+      description: ''
+      required:
+      - id
+      type: object
+      properties:
+        id:
+          description: 角色唯一标识
+          type: string
+      example:
+        id: asd258sd-as58=69sd-458sds58s58d
+    PolicyIDInfos:
+      description: ''
+      required:
+      - ids
+      type: object
+      properties:
+        ids:
+          description: 策略唯一标识
+          type: array
+          items:
+            type: string
+      example:
+        ids:
+        - asd258sd-as58=69sd-458sds58s58d
+        - asd258sd-as58=69sd-458sds58s58d
+    RoleInfoNoRequired:
+      description: 非必填的角色信息
+      type: object
+      properties:
+        name:
+          description: 角色名称
+          type: string
+        description:
+          description: 描述
+          type: string
+        resource_type_scope:
+          description: 资源类型范围
+          type: object
+          required:
+          - unlimited
+          properties:
+            unlimited:
+              description: 是否无限制
+              type: boolean
+            types:
+              description: "资源类型列表 \r\n\r\n unlimited为false时，types数组表示角色的资源类型范围"
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                properties:
+                  id:
+                    description: 资源类型唯一标识
+                    type: string
+      example:
+        name: 数据管理员
+        description: 接入和管理数据
+        resource_type_scope:
+          unlimited: false
+          types:
+          - id: doc
+    MemberRelations:
+      description: 成员关系信息
+      required:
+      - method
+      - members
+      type: object
+      properties:
+        method:
+          description: "方法名，目前支持添加和删除操作\n- `POST` 添加\n- `DELETE` 删除   \n"
+          enum:
+          - POST
+          - DELETE
+          type: string
+        members:
+          description: 成员信息
+          type: array
+          items:
+            "$ref": "#/components/schemas/MemberRelation"
+    MemberRelation:
+      description: 角色成员信息
+      required:
+      - id
+      - type
+      type: object
+      properties:
+        id:
+          description: 成员id
+          type: string
+        type:
+          description: "成员类型\n- `user` 用户\n- `department` 部门\n- `group` 用户组\n- `app`
+            应用账户  \n"
+          enum:
+          - user
+          - department
+          - group
+          - app
+          type: string
+      example:
+        id: 58sd6a8s-dsas-589a-sd58as58dsas
+        type: user
+    MemberInfos:
+      description: 成员列表
+      required:
+      - entries
+      - total_count
+      type: object
+      properties:
+        entries:
+          description: 成员条目列表
+          type: array
+          items:
+            "$ref": "#/components/schemas/RoleMemberInfo"
+        total_count:
+          format: int64
+          description: 总条目数（忽略offset和limit）
+          type: integer
+      example:
+        entries:
+        - name: xxxx
+          type: user
+          id: 58sd6a8s-dsas-589a-sd58as58dsas
+          parent_deps:
+          - - id: f114a570-66a9-11eb-ad9d-0050568274c4
+              name: xx公司
+              type: department
+            - id: f214a570-66a9-11eb-ad9d-0050568274c4
+              name: 研发部
+              type: department
+          - - id: f314a570-66a9-11eb-ad9d-0050568274c4
+              name: bb公司
+              type: department
+            - id: f414a570-66a9-11eb-ad9d-0050568274c4
+              name: 设计部
+              type: department
+        - name: zzzz
+          type: user
+          id: 24sd6a8s-dsas-589a-sd58as58dsas
+          parent_deps:
+          - - id: f114a570-66a9-11eb-ad9d-0050568274c4
+              name: xx公司
+              type: department
+            - id: f214a570-66a9-11eb-ad9d-0050568274c4
+              name: 研发部
+              type: department
+          - - id: f314a570-66a9-11eb-ad9d-0050568274c4
+              name: bb公司
+              type: department
+            - id: f414a570-66a9-11eb-ad9d-0050568274c4
+              name: 设计部
+              type: department
+        total_count: 2
+    RoleMemberInfo:
+      description: 角色成员信息
+      required:
+      - name
+      - id
+      - type
+      - parent_deps
+      type: object
+      properties:
+        name:
+          description: 成员显示名
+          type: string
+        id:
+          description: 成员id，可以是用户id，部门id
+          type: string
+        type:
+          description: "成员类型\n- `user` 用户\n- `department` 部门\n- `group` 用户组\n- `app`
+            应用账户  \n"
+          enum:
+          - user
+          - department
+          - group
+          - app
+          type: string
+        parent_deps:
+          description: 父部门信息，描述多个父部门的层级关系信息，每个父部门层级数组内第一个对象是根部门，最后一个对象是直接父部门
+          type: array
+          items:
+            type: array
+            items:
+              "$ref": "#/components/schemas/DepInfo"
+    DepInfo:
+      description: 部门信息
+      required:
+      - id
+      - name
+      - type
+      type: object
+      properties:
+        id:
+          description: 部门ID
+          type: string
+        name:
+          description: 部门名称
+          type: string
+        type:
+          description: 固定为"department"
+          type: string
+      example:
+        id: f114a570-66a9-11eb-ad9d-0050568274c4
+        name: 研发部
+        type: department
+    ResourceTypeInfo:
+      description: 资源类型信息
+      required:
+      - name
+      - data_struct
+      - operation
+      type: object
+      properties:
+        name:
+          description: 名称
+          type: string
+        description:
+          description: 描述
+          type: string
+        instance_url:
+          description: "获取资源实例URL \r\n\r\n示例：`GET /api/document/v1/docs`"
+          type: string
+        data_struct:
+          description: 数据结构
+          type: string
+          enum:
+          - tree
+          - string
+        operation:
+          description: 操作
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - name
+            - description
+            - scope
+            properties:
+              id:
+                description: 操作唯一标识
+                type: string
+              name:
+                description: 名称
+                type: array
+                items:
+                  type: object
+                  required:
+                  - language
+                  - value
+                  properties:
+                    language:
+                      description: "语言类型, 可能的值有：`zh-cn`, `zh-tw`, `en-us`等(不区分大小写)
+                        \n- zh-cn：中文简体 \n- zh-tw：中文繁体 \n- en-us： 英文 \r\n\r\n其他接口，如策略配置列举，返回操作名称时，由http请求头中`x-language`指定"
+                      type: string
+                    value:
+                      description: 名称
+                      type: string
+              description:
+                description: 操作描述
+                type: string
+              scope:
+                description: |-
+                  操作的使用范围
+                  - `type` 资源类型
+                  - `instance` 资源实例
+                type: array
+                items:
+                  type: string
+                  description: 操作的使用范围
+                  enum:
+                  - type
+                  - instance
+      example:
+        name: 文档
+        description: 文档
+        instance_url: GET /api/document/v1/docs
+        data_struct: tree
+        operation:
+        - id: display
+          name:
+          - language: zh-cn
+            value: 显示
+          description: 显示文档
+          scope:
+          - type
+          - instance
+    GetResourceTypeInfo:
+      description: 资源类型信息
+      required:
+      - id
+      - name
+      - description
+      - instance_url
+      - data_struct
+      - operation
+      type: object
+      properties:
+        id:
+          description: 资源类型唯一标识
+          type: string
+        name:
+          description: 资源类型名称
+          type: string
+        description:
+          description: 资源类型描述
+          type: string
+        instance_url:
+          description: 资源类型实例URL
+          type: string
+        data_struct:
+          description: 数据结构
+          type: string
+          enum:
+          - tree
+          - array
+          - string
+        operation:
+          description: 操作
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - name
+            - description
+            - scope
+            properties:
+              id:
+                description: 操作唯一标识
+                type: string
+              name:
+                description: 名称
+                type: array
+                items:
+                  type: object
+                  required:
+                  - language
+                  - value
+                  properties:
+                    language:
+                      description: 语言类型
+                      type: string
+                    value:
+                      description: 名称
+                      type: string
+              description:
+                description: 操作描述
+                type: string
+              scope:
+                description: |-
+                  操作的使用范围
+                  - `type` 资源类型
+                  - `instance` 资源实例
+                type: array
+                items:
+                  type: string
+                  description: 操作的使用范围
+                  enum:
+                  - type
+                  - instance
+      example:
+        id: doc
+        name: 文档
+        description: 文档
+        instance_url: GET /api/document/v1/docs
+        data_struct: tree
+        operation:
+        - id: display
+          name:
+          - language: zh-cn
+            value: 显示
+          description: 显示文档
+          scope:
+          - type
+          - instance
+    ResourceTypeOperationArray:
+      description: 操作列表
+      type: array
+      items:
+        "$ref": "#/components/schemas/ResourceTypeOperation"
+    ResourceTypeOperation:
+      description: 操作列表
+      required:
+      - id
+      - name
+      - description
+      type: object
+      properties:
+        id:
+          description: 操作唯一标识
+          type: string
+        name:
+          description: 操作名称
+          type: string
+        description:
+          description: 操作描述
+          type: string
+    ResourceTypeAllOperation:
+      description: 资源所有操作
+      type: object
+      required:
+      - operations
+      properties:
+        operations:
+          type: array
+          items:
+            "$ref": "#/components/schemas/ResourceTypeOperation"
+        children:
+          type: array
+          items:
+            "$ref": "#/components/schemas/ChildrenResourceTypeOperation"
+    ChildrenResourceTypeOperation:
+      description: 子资源类型操作
+      type: object
+      required:
+      - id
+      - name
+      - operations
+      - children
+      properties:
+        id:
+          type: string
+          description: 子资源类型唯一标识
+        name:
+          type: string
+          description: 子资源类型名称
+        operations:
+          type: array
+          items:
+            "$ref": "#/components/schemas/ResourceTypeOperation"
+        children:
+          type: array
+          items:
+            "$ref": "#/components/schemas/ChildrenResourceTypeOperation"
+    ListResourceTypeInfo:
+      description: 资源类型列表
+      required:
+      - entries
+      - total_count
+      type: object
+      properties:
+        entries:
+          description: 资源类型条目列表
+          type: array
+          items:
+            "$ref": "#/components/schemas/GetResourceTypeInfo"
+        total_count:
+          format: int64
+          description: 总条目数（忽略offset和limit）
+          type: integer
+      example:
+        entries:
+        - id: doc
+          data_struct: tree
+          name: 文档
+          description: 文档
+          instance_url: GET /api/document/v1/docs
+          operation:
+          - id: display
+            name:
+            - language: zh-cn
+              value: 显示
+            description: 显示文档
+            scope:
+            - type
+            - instance
+        - id: tool
+          data_struct: string
+          name: 工具
+          description: 工具
+          instance_url: GET /api/tool/v1/tools
+          operation:
+          - id: display
+            name:
+            - language: zh-cn
+              value: 显示
+            description: 显示工具
+            scope:
+            - type
+            - instance
+        total_count: 2
+    PolicyInfo:
+      description: 策略信息
+      required:
+      - accessor
+      - resource
+      - operation
+      - expires_at
+      type: object
+      properties:
+        accessor:
+          description: 访问者
+          type: object
+          required:
+          - id
+          - type
+          - name
+          - parent_deps
+          properties:
+            id:
+              description: 访问者唯一标识
+              type: string
+            type:
+              description: 访问者类型
+              type: string
+              enum:
+              - user
+              - department
+              - group
+              - role
+              - app
+            name:
+              description: 访问者名称
+              type: string
+            parent_deps:
+              description: 父部门信息，描述多个父部门的层级关系信息，每个父部门层级数组内第一个对象是根部门，最后一个对象是直接父部门
+              type: array
+              items:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/DepInfo"
+        resource:
+          description: 资源
+          type: object
+          required:
+          - id
+          - type
+          - name
+          properties:
+            id:
+              description: 资源唯一标识
+              type: string
+            type:
+              description: 资源类型
+              type: string
+            name:
+              description: 资源名称
+              type: string
+        operation:
+          description: 操作
+          type: object
+          required:
+          - allow
+          - deny
+          properties:
+            allow:
+              description: 允许操作
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                - name
+                properties:
+                  id:
+                    description: 操作唯一标识
+                    type: string
+                  name:
+                    description: 操作名称
+                    type: string
+                  obligations:
+                    description: 义务列表
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/GetPolicyObligation"
+            deny:
+              description: 拒绝操作
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                - name
+                properties:
+                  id:
+                    description: 操作唯一标识
+                    type: string
+                  name:
+                    description: 操作名称
+                    type: string
+        expires_at:
+          description: 到期时间(秒级)，RFC3339格式，UNIX TIME时间纪元(1970-01-01T08:00:00+08:00)表示永久有效
+          type: string
+      example:
+        accessor:
+          id: c11b8550-de89-4fe3-be9f-06190a2083fb
+          type: role
+          name: 数据管理员
+          parent_deps: []
+        resource:
+          id: 3a4eb6f6-c74e-41ed-9e49-03495591f247
+          type: tool
+          name: 百度搜索工具
+        operation:
+          allow:
+          - display
+          deny: []
+        expires_at: '2025-06-11 00:00:00'
+    AccessorPolicyInfo:
+      description: 策略信息
+      required:
+      - id
+      - resource
+      - operation
+      - expires_at
+      type: object
+      properties:
+        id:
+          description: 策略唯一标识
+          type: string
+        resource:
+          description: 资源
+          type: object
+          required:
+          - id
+          - type
+          - name
+          properties:
+            id:
+              description: 资源唯一标识
+              type: string
+            type:
+              description: 资源类型
+              type: string
+            name:
+              description: 资源名称
+              type: string
+        operation:
+          description: 操作
+          type: object
+          required:
+          - allow
+          - deny
+          properties:
+            allow:
+              description: 允许操作
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                - name
+                properties:
+                  id:
+                    description: 操作唯一标识
+                    type: string
+                  name:
+                    description: 操作名称
+                    type: string
+                  obligations:
+                    description: 义务列表
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/GetPolicyObligation"
+            deny:
+              description: 拒绝操作
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                - name
+                properties:
+                  id:
+                    description: 操作唯一标识
+                    type: string
+                  name:
+                    description: 操作名称
+                    type: string
+        expires_at:
+          description: 到期时间(秒级)，RFC3339格式，UNIX TIME时间纪元(1970-01-01T08:00:00+08:00)表示永久有效
+          type: string
+      example:
+        id: 24sd6a8s-dsas-589a-sd58as58dsas
+        resource:
+          id: 3a4eb6f6-c74e-41ed-9e49-03495591f247
+          type: tool
+          name: 百度搜索工具
+        operation:
+          allow:
+          - id: display
+            name: 显示
+          deny: []
+        expires_at: '1970-01-01T08:00:00+08:00'
+    ResourcePolicyInfo:
+      description: 策略信息
+      required:
+      - id
+      - accessor
+      - operation
+      - expires_at
+      type: object
+      properties:
+        id:
+          description: 策略唯一标识
+          type: string
+        accessor:
+          description: 访问者
+          type: object
+          required:
+          - id
+          - type
+          - name
+          - parent_deps
+          properties:
+            id:
+              description: 访问者唯一标识
+              type: string
+            type:
+              description: 访问者类型
+              type: string
+              enum:
+              - user
+              - department
+              - group
+              - role
+              - app
+            name:
+              description: 访问者名称
+              type: string
+            parent_deps:
+              description: 父部门信息，描述多个父部门的层级关系信息，每个父部门层级数组内第一个对象是根部门，最后一个对象是直接父部门
+              type: array
+              items:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/DepInfo"
+        operation:
+          description: 操作
+          type: object
+          required:
+          - allow
+          - deny
+          properties:
+            allow:
+              description: 允许操作
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                - name
+                properties:
+                  id:
+                    description: 操作唯一标识
+                    type: string
+                  name:
+                    description: 操作名称
+                    type: string
+                  obligations:
+                    description: 义务列表
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/GetPolicyObligation"
+            deny:
+              description: 拒绝操作
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                - name
+                properties:
+                  id:
+                    description: 操作唯一标识
+                    type: string
+                  name:
+                    description: 操作名称
+                    type: string
+        expires_at:
+          description: 到期时间(秒级)，RFC3339格式，UNIX TIME时间纪元(1970-01-01T08:00:00+08:00)表示永久有效
+          type: string
+      example:
+        accessor:
+          id: c11b8550-de89-4fe3-be9f-06190a2083fb
+          type: role
+          name: 数据管理员
+          parent_deps: []
+        operation:
+          allow:
+          - display
+          deny: []
+        expires_at: '2025-06-11 00:00:00'
+    ListAccessorPolicyInfo:
+      description: 策略列表
+      required:
+      - entries
+      - total_count
+      type: object
+      properties:
+        entries:
+          description: 策略条目列表
+          type: array
+          items:
+            "$ref": "#/components/schemas/AccessorPolicyInfo"
+        total_count:
+          format: int64
+          description: 总条目数（忽略offset和limit）
+          type: integer
+        include:
+          description: 返回的额外信息
+          type: object
+          properties:
+            obligation_types:
+              description: 义务类型
+              type: array
+              items:
+                "$ref": "#/components/schemas/PolicyObligationTypeInfoResp"
+            obligations:
+              description: 义务
+              type: array
+              items:
+                "$ref": "#/components/schemas/ObligationInfo"
+      example:
+        entries:
+        - accessor:
+            id: c11b8550-de89-4fe3-be9f-06190a2083fb
+            type: role
+            name: 数据管理员
+          resource:
+            id: f69c786a-45c0-11f0-8c38-1eece78a80c5
+            type: tool
+            name: 百度搜索工具
+          operation:
+            allow:
+            - display
+            deny: []
+          expires_at: '1970-01-01T08:00:00+08:00'
+        total_count: 1
+    ListResourcePolicyInfo:
+      description: 策略列表
+      required:
+      - entries
+      - total_count
+      type: object
+      properties:
+        entries:
+          description: 策略条目列表
+          type: array
+          items:
+            "$ref": "#/components/schemas/ResourcePolicyInfo"
+        total_count:
+          format: int64
+          description: 总条目数（忽略offset和limit）
+          type: integer
+        include:
+          description: 返回的额外信息
+          type: object
+          properties:
+            obligation_types:
+              description: 义务类型
+              type: array
+              items:
+                "$ref": "#/components/schemas/PolicyObligationTypeInfoResp"
+            obligations:
+              description: 义务
+              type: array
+              items:
+                "$ref": "#/components/schemas/ObligationInfo"
+      example:
+        entries:
+        - accessor:
+            id: c11b8550-de89-4fe3-be9f-06190a2083fb
+            type: role
+            name: 数据管理员
+          operation:
+            allow:
+            - display
+            deny: []
+          expires_at: '1970-01-01T08:00:00+08:00'
+        total_count: 1
+    CreatePolicyInfo:
+      description: 策略信息
+      required:
+      - accessor
+      - resource
+      - operation
+      type: object
+      properties:
+        accessor:
+          description: 访问者
+          type: object
+          required:
+          - id
+          - type
+          properties:
+            id:
+              description: "访问者唯一标识\r\n\r\n  所有用户/组织/部门可用`根部门`表示，id为`00000000-0000-0000-0000-000000000000`
+                type为`department`"
+              type: string
+            type:
+              description: 访问者类型
+              type: string
+              enum:
+              - user
+              - department
+              - group
+              - role
+              - app
+        resource:
+          description: 资源
+          type: object
+          required:
+          - id
+          - type
+          - name
+          properties:
+            id:
+              description: 资源唯一标识
+              type: string
+            type:
+              description: 资源类型
+              type: string
+            name:
+              description: 资源名称
+              type: string
+            ancestors:
+              description: 祖先信息列表, 资源实例有层级结构则此字段需要传入。 数组按顺序排列：根节点 -> 直接父节点
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                - type
+                - name
+                properties:
+                  id:
+                    description: 祖先资源唯一标识
+                    type: string
+                  type:
+                    description: 祖先资源类型
+                    type: string
+                  name:
+                    description: 祖先资源名称
+                    type: string
+        operation:
+          description: 操作
+          type: object
+          required:
+          - allow
+          - deny
+          properties:
+            allow:
+              description: 允许操作
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                properties:
+                  id:
+                    description: 操作唯一标识
+                    type: string
+                  obligations:
+                    description: "义务列表\r\n\r\n id（义务唯一标识）和value（义务参数值）二选一"
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/PolicyObligation"
+            deny:
+              description: 拒绝操作
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                properties:
+                  id:
+                    description: 操作唯一标识
+                    type: string
+        expires_at:
+          description: 到期时间(秒级)，RFC3339格式，UNIX TIME时间纪元(1970-01-01T08:00:00+08:00)表示永久有效
+          type: string
+      example:
+        accessor:
+          id: c11b8550-de89-4fe3-be9f-06190a2083fb
+          type: role
+        resource:
+          id: 3a4eb6f6-c74e-41ed-9e49-03495591f247
+          type: tool
+          name: 百度搜索工具
+        operation:
+          allow:
+          - id: display
+            obligations:
+            - id: 3a4eb6f6-c74e-41ed-9e49-03495591f247
+            - value:
+                scope: all
+          deny: []
+        expires_at: '1970-01-01T08:00:00+08:00'
+    PolicyObligation:
+      description: 义务信息
+      type: object
+      required:
+      - type_id
+      properties:
+        type_id:
+          description: 义务类型唯一标识
+          type: string
+        id:
+          description: 义务唯一标识
+          type: string
+        value:
+          description: 义务参数值
+          type: object
+          additionalProperties: true
+    GetPolicyObligation:
+      description: 义务信息
+      type: object
+      required:
+      - type_id
+      properties:
+        type_id:
+          description: 义务类型
+          type: string
+        id:
+          description: 义务唯一标识
+          type: string
+        value:
+          description: 义务参数值
+          type: object
+          additionalProperties: true
+    UpdatePolicyInfo:
+      description: 策略信息
+      required:
+      - operation
+      type: object
+      properties:
+        operation:
+          description: 操作
+          type: object
+          required:
+          - allow
+          - deny
+          properties:
+            allow:
+              description: 允许操作
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                properties:
+                  id:
+                    description: 操作唯一标识
+                    type: string
+                  obligations:
+                    description: "义务列表\r\n\r\n id（义务唯一标识）和value（义务参数值）二选一"
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/PolicyObligation"
+            deny:
+              description: 拒绝操作
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                properties:
+                  id:
+                    description: 操作唯一标识
+                    type: string
+        expires_at:
+          description: 到期时间(秒级)，RFC3339格式，UNIX TIME时间纪元(1970-01-01T08:00:00+08:00)表示永久有效
+          type: string
+      example:
+        operation:
+          allow:
+          - display
+          deny: []
+        expires_at: '2024-01-01T08:00:00+08:00'
+    ListPolicyInfo:
+      description: 策略列表
+      required:
+      - entries
+      - total_count
+      type: object
+      properties:
+        entries:
+          description: 策略条目列表
+          type: array
+          items:
+            "$ref": "#/components/schemas/PolicyInfo"
+        total_count:
+          format: int64
+          description: 总条目数（忽略offset和limit）
+          type: integer
+      example:
+        entries:
+        - accessor:
+            id: c11b8550-de89-4fe3-be9f-06190a2083fb
+            type: role
+            name: 数据管理员
+          resource:
+            id: f69c786a-45c0-11f0-8c38-1eece78a80c5
+            type: tool
+            name: 百度搜索工具
+          operation:
+            allow:
+            - display
+            deny: []
+          expires_at: '1970-01-01T08:00:00+08:00'
+        total_count: 1
+    CreatePolicyInfos:
+      description: 策略条目列表
+      type: array
+      items:
+        "$ref": "#/components/schemas/CreatePolicyInfo"
+    UpdatePolicyInfos:
+      description: 策略条目列表
+      type: array
+      items:
+        "$ref": "#/components/schemas/UpdatePolicyInfo"
+    CheckReq:
+      description: ''
+      required:
+      - resource
+      - operation
+      - method
+      type: object
+      properties:
+        method:
+          description: 方法
+          enum:
+          - GET
+          type: string
+        resource:
+          "$ref": "#/components/schemas/Resource"
+          description: 资源信息
+        operation:
+          description: 检查的操作
+          type: array
+          items:
+            type: string
+    ResourceOperationReq:
+      description: ''
+      required:
+      - resources
+      - method
+      type: object
+      properties:
+        method:
+          description: 方法
+          enum:
+          - GET
+          type: string
+        resources:
+          "$ref": "#/components/schemas/ResourceArray"
+          description: 资源信息
+    ResourceTypeOperationReq:
+      description: ''
+      required:
+      - resource_types
+      - method
+      type: object
+      properties:
+        method:
+          description: 方法
+          enum:
+          - GET
+          type: string
+        resource_types:
+          type: array
+          items:
+            type: string
+            description: 资源类型
+    Resource:
+      description: 资源信息
+      required:
+      - id
+      - type
+      type: object
+      properties:
+        id:
+          description: 唯一标识id
+          type: string
+        type:
+          description: 资源类型
+          type: string
+        ancestors:
+          description: 祖先信息列表, 资源实例有层级结构则此字段需要传入。 数组按顺序排列：根节点 -> 直接父节点
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - type
+            properties:
+              id:
+                description: 祖先资源唯一标识
+                type: string
+              type:
+                description: 祖先资源类型
+                type: string
+        created_by:
+          description: 创建者
+          type: object
+          required:
+          - id
+          properties:
+            id:
+              description: 创建者唯一标识
+              type: string
+    ResourceArray:
+      description: 资源列表
+      type: array
+      items:
+        "$ref": "#/components/schemas/Resource"
+    CheckResult:
+      description: ''
+      required:
+      - result
+      type: object
+      properties:
+        result:
+          description: |-
+            检查结果 ：
+            - true 允许
+            - false 拒绝
+          type: boolean
+      example:
+        result: true
+    ResourceOperationResult:
+      description: 资源操作
+      type: array
+      items:
+        type: object
+        required:
+        - id
+        - operation
+        properties:
+          id:
+            description: 资源唯一标识
+            type: string
+          operation:
+            description: 操作
+            type: array
+            items:
+              type: string
+      example:
+      - id: search_tool
+        operation:
+        - display
+    ResourceTypeOperationResult:
+      description: 资源操作
+      type: array
+      items:
+        type: object
+        required:
+        - resource_type
+        - operation
+        properties:
+          resource_type:
+            description: 资源类型
+            type: string
+          operation:
+            description: 操作
+            type: array
+            items:
+              type: string
+      example:
+      - resource_type: doc
+        operation:
+        - display
+      - resource_type: menu
+        operation:
+        - display
+    ObligationInfo:
+      description: 义务信息
+      type: object
+      required:
+      - id
+      - type_id
+      - name
+      - value
+      - description
+      properties:
+        id:
+          description: 义务唯一标识
+          type: string
+        type_id:
+          description: 义务类型唯一标识
+          type: string
+        name:
+          description: 名称
+          type: string
+        value:
+          description: 义务参数值
+          type: object
+          additionalProperties: true
+        description:
+          description: 描述
+          type: string
+    UpdateObligationInfo:
+      description: 义务参数值
+      type: object
+      properties:
+        name:
+          description: 名称
+          type: string
+        description:
+          description: 描述
+          type: string
+        value:
+          description: "义务参数值\r\n\r\n 格式为JSON，会根据义务类型的schema进行验证"
+          type: object
+          additionalProperties: true
+    ObligationTypeInfoWithId:
+      description: 义务类型信息
+      type: object
+      required:
+      - id
+      - name
+      - schema
+      - applicable_resource_types
+      - description
+      - default_value
+      - ui_schema
+      properties:
+        id:
+          description: 唯一标识
+          type: string
+        name:
+          description: 名称
+          type: string
+        schema:
+          description: 参数配置，格式为JSON Schema
+          type: object
+          required:
+          - type
+          - properties
+          properties:
+            type:
+              description: 参数类型
+              type: string
+              enum:
+              - object
+            properties:
+              description: 参数属性
+              type: object
+              additionalProperties:
+                required:
+                - type
+                - title
+                properties:
+                  type:
+                    description: 参数类型
+                    type: string
+                  title:
+                    description: 参数名称
+                    type: string
+                additionalProperties: true
+            required:
+              description: 参数必填
+              type: array
+              items:
+                type: string
+          additionalProperties: true
+        applicable_resource_types:
+          description: 可应用的资源类型
+          type: object
+          required:
+          - unlimited
+          properties:
+            unlimited:
+              description: 是否无限制
+              type: boolean
+            resource_types:
+              description: "资源类型列表 \r\n\r\n unlimited为false时，resource_types数组表示资源类型范围"
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                - name
+                - applicable_operations
+                properties:
+                  id:
+                    description: 资源类型唯一标识
+                    type: string
+                  name:
+                    description: 资源类型名称
+                    type: string
+                  applicable_operations:
+                    description: 可应用的操作
+                    type: object
+                    required:
+                    - unlimited
+                    properties:
+                      unlimited:
+                        description: 是否无限制
+                        type: boolean
+                      operations:
+                        description: "操作列表 \r\n\r\n unlimited为false时，operations数组表示操作范围"
+                        type: array
+                        items:
+                          type: object
+                          required:
+                          - id
+                          - name
+                          properties:
+                            id:
+                              description: 操作唯一标识
+                              type: string
+                            name:
+                              description: 操作名称
+                              type: string
+        description:
+          description: 描述
+          type: string
+        default_value:
+          description: "义务默认值\r\n\r\n 未设置默认值时为空Json"
+          type: object
+          additionalProperties: true
+        ui_schema:
+          description: "控制schema字段在UI界面的渲染效果\r\n\r\n 未设置默认值时为空Json"
+          type: object
+          additionalProperties: true
+    ObligationTypeInfo:
+      description: 义务类型
+      type: object
+      required:
+      - name
+      - schema
+      - applicable_resource_types
+      properties:
+        name:
+          description: 名称
+          type: string
+        schema:
+          description: 参数配置，格式为JSON Schema
+          type: object
+          required:
+          - type
+          - properties
+          properties:
+            type:
+              description: 参数类型
+              type: string
+              enum:
+              - object
+            properties:
+              description: 参数属性
+              type: object
+              additionalProperties:
+                required:
+                - type
+                - title
+                properties:
+                  type:
+                    description: 参数类型
+                    type: string
+                  title:
+                    description: 参数名称
+                    type: string
+                additionalProperties: true
+            required:
+              description: 参数必填
+              type: array
+              items:
+                type: string
+          additionalProperties: true
+        applicable_resource_types:
+          description: 可应用的资源类型
+          type: object
+          required:
+          - unlimited
+          properties:
+            unlimited:
+              description: 是否无限制
+              type: boolean
+            resource_types:
+              description: "资源类型列表 \r\n\r\n unlimited为false时，resource_types数组表示资源类型范围"
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                - applicable_operations
+                properties:
+                  id:
+                    description: 资源类型唯一标识
+                    type: string
+                  applicable_operations:
+                    description: 可应用的操作
+                    type: object
+                    required:
+                    - unlimited
+                    properties:
+                      unlimited:
+                        description: 是否无限制
+                        type: boolean
+                      operations:
+                        description: "操作列表 \r\n\r\n unlimited为false时，operations数组表示操作范围"
+                        type: array
+                        items:
+                          type: object
+                          required:
+                          - id
+                          properties:
+                            id:
+                              description: 操作唯一标识
+                              type: string
+        description:
+          description: 描述
+          type: string
+        default_value:
+          description: "义务默认值\r\n\r\n 格式为JSON，会根据schema进行验证"
+          type: object
+          additionalProperties: true
+        ui_schema:
+          description: "控制schema字段在UI界面的渲染效果。例如：字段的顺序\r\n\r\n前端使用react-jsonschema-form库来渲染UI,
+            ui_schema格式参考`https://rjsf-team.github.io/react-jsonschema-form/docs/api-reference/uiSchema`"
+          type: object
+          additionalProperties: true
+      example:
+        name: 文档预览/下载策略
+        schema:
+          type: object
+          title: 水印配置
+          properties:
+            name:
+              type: string
+              title: 水印名称
+              description: 水印的唯一标识名称
+            layout:
+              type: string
+              title: 布局方式
+              enum:
+              - tile
+              - single
+              enumNames:
+              - 平铺
+              - 单张
+              default: tile
+              description: 水印在文档中的布局方式
+          required:
+          - name
+          - layout
+        applicable_resource_types:
+          unlimited: true
+        description: 水印模板
+        ui_schema:
+          ui:order:
+          - name
+          - layout
+          name:
+            ui:widget: textarea
+            ui:placeholder: 请输入名称...
+    ObligationTypeInfoWithName:
+      description: 义务类型
+      type: object
+      required:
+      - name
+      - schema
+      - applicable_resource_types
+      - description
+      - default_value
+      - ui_schema
+      properties:
+        name:
+          description: 名称
+          type: string
+        schema:
+          description: 参数配置，格式为JSON Schema
+          type: object
+          required:
+          - type
+          - properties
+          properties:
+            type:
+              description: 参数类型
+              type: string
+              enum:
+              - object
+            properties:
+              description: 参数属性
+              type: object
+              additionalProperties:
+                required:
+                - type
+                - title
+                properties:
+                  type:
+                    description: 参数类型
+                    type: string
+                  title:
+                    description: 参数名称
+                    type: string
+                additionalProperties: true
+            required:
+              description: 参数必填
+              type: array
+              items:
+                type: string
+          additionalProperties: true
+        applicable_resource_types:
+          description: 可应用的资源类型
+          type: object
+          required:
+          - unlimited
+          properties:
+            unlimited:
+              description: 是否无限制
+              type: boolean
+            resource_types:
+              description: "资源类型列表 \r\n\r\n unlimited为false时，resource_types数组表示资源类型范围"
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                - name
+                - applicable_operations
+                properties:
+                  id:
+                    description: 资源类型唯一标识
+                    type: string
+                  name:
+                    description: 资源类型名称
+                    type: string
+                  applicable_operations:
+                    description: 可应用的操作
+                    type: object
+                    required:
+                    - unlimited
+                    properties:
+                      unlimited:
+                        description: 是否无限制
+                        type: boolean
+                      operations:
+                        description: "操作列表 \r\n\r\n unlimited为false时，operations数组表示操作范围"
+                        type: array
+                        items:
+                          type: object
+                          required:
+                          - id
+                          - name
+                          properties:
+                            id:
+                              description: 操作唯一标识
+                              type: string
+                            name:
+                              description: 操作名称
+                              type: string
+        description:
+          description: 描述
+          type: string
+        default_value:
+          description: "义务默认值\r\n\r\n 未设置默认值时为空Json"
+          type: object
+          additionalProperties: true
+        ui_schema:
+          description: "控制schema字段在UI界面的渲染效果\r\n\r\n 未设置默认值时为空Json"
+          type: object
+          additionalProperties: true
+    QueryObligationTypeInfo:
+      description: 义务类型信息
+      type: object
+      required:
+      - id
+      - name
+      - schema
+      - description
+      - default_value
+      properties:
+        id:
+          description: 唯一标识
+          type: string
+        name:
+          description: 名称
+          type: string
+        schema:
+          description: 参数配置，格式为JSON Schema
+          type: object
+          required:
+          - type
+          - properties
+          - required
+          properties:
+            type:
+              description: 参数类型
+              type: string
+              enum:
+              - object
+            properties:
+              description: 参数属性
+              type: object
+              additionalProperties:
+                required:
+                - type
+                - description
+                properties:
+                  type:
+                    description: 参数类型
+                    type: string
+                  description:
+                    description: 参数描述
+                    type: string
+                additionalProperties: true
+            required:
+              description: 参数必填
+              type: array
+              items:
+                type: string
+          additionalProperties: true
+        description:
+          description: 描述
+          type: string
+        default_value:
+          description: "义务默认值\r\n\r\n 未设置默认值时为空Json"
+          type: object
+          additionalProperties: true
+    PolicyObligationTypeInfoResp:
+      description: 义务类型信息
+      type: object
+      required:
+      - id
+      - name
+      - schema
+      - description
+      properties:
+        id:
+          description: 唯一标识
+          type: string
+        name:
+          description: 名称
+          type: string
+        schema:
+          description: 参数配置，格式为JSON Schema
+          type: object
+          required:
+          - type
+          - properties
+          - required
+          properties:
+            type:
+              description: 参数类型
+              type: string
+              enum:
+              - object
+            properties:
+              description: 参数属性
+              type: object
+              additionalProperties:
+                required:
+                - type
+                - description
+                properties:
+                  type:
+                    description: 参数类型
+                    type: string
+                  description:
+                    description: 参数描述
+                    type: string
+                additionalProperties: true
+            required:
+              description: 参数必填
+              type: array
+              items:
+                type: string
+          additionalProperties: true
+        description:
+          description: 描述
+          type: string
+    CreateObligationReq:
+      description: 创建义务请求
+      type: object
+      required:
+      - type_id
+      - name
+      - value
+      properties:
+        type_id:
+          description: 义务类型唯一标识
+          type: string
+        name:
+          description: 名称
+          type: string
+        value:
+          description: "义务参数值\r\n\r\n 格式为JSON，会根据义务类型的schema进行验证"
+          type: object
+          additionalProperties: true
+        description:
+          description: 描述
+          type: string
+    ListObligationTypeInfos:
+      description: 义务类型列表
+      required:
+      - entries
+      - total_count
+      type: object
+      properties:
+        entries:
+          description: 义务类型条目列表
+          type: array
+          items:
+            "$ref": "#/components/schemas/ObligationTypeInfoWithId"
+        total_count:
+          format: int64
+          description: 总条目数（忽略offset和limit）
+          type: integer
+    ListObligationInfos:
+      description: 义务列表
+      required:
+      - entries
+      - total_count
+      type: object
+      properties:
+        entries:
+          description: 义务条目列表
+          type: array
+          items:
+            "$ref": "#/components/schemas/ObligationInfo"
+        total_count:
+          format: int64
+          description: 总条目数（忽略offset和limit）
+          type: integer
+    OperationObligationTypeArray:
+      description: 操作义务类型列表
+      type: array
+      items:
+        type: object
+        properties:
+          operation_id:
+            description: 操作一标识
+            type: string
+          obligation_types:
+            description: 义务类型列表
+            type: array
+            items:
+              "$ref": "#/components/schemas/QueryObligationTypeInfo"
+    ResourceTypeObligationTypeArray:
+      description: 资源类型义务类型列表
+      type: array
+      items:
+        type: object
+        properties:
+          resource_type_id:
+            description: 资源类型唯一标识
+            type: string
+          operations:
+            description: 操作列表
+            type: array
+            items:
+              "$ref": "#/components/schemas/OperationObligationTypeArray"
+    OperationObligationArray:
+      description: 操作义务列表
+      type: array
+      items:
+        type: object
+        properties:
+          operation_id:
+            description: 操作一标识
+            type: string
+          obligations:
+            description: 义务列表
+            type: array
+            items:
+              "$ref": "#/components/schemas/ObligationInfo"
+  responses:
+    RespStd500:
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/Error"
+          examples:
+            ErrInternalServerError:
+              summary: 服务器错误
+              description: 服务器错误
+              value:
+                code: Public.InternalServerError
+                description: 服务器错误
+      description: 服务器错误
+    RespStd400:
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/Error"
+          examples:
+            ErrBadRequest:
+              summary: 请求参数错误
+              description: 请求参数错误
+              value:
+                code: Public.BadRequest
+                description: 请求参数错误
+      description: 请求参数错误
+  examples: {}

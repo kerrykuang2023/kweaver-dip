@@ -1,0 +1,1180 @@
+openapi: 3.0.2
+info:
+  title: authorization服务公共API
+  version: 1.0.0
+  description: "API to access AnyShare\r\n\r\n如有任何疑问，可到开发者社区提问：https://developers.aishu.cn"
+servers:
+- url: https://{host}:{port}/api
+  description: 'host: AnyShare服务器IP, port: 默认端口443'
+  variables:
+    host:
+      default: host
+      description: AnyShare服务器IP
+    port:
+      default: '443'
+      description: https默认端口443
+components:
+  securitySchemes:
+    OAuth2.0:
+      flows: {}
+      type: oauth2
+security:
+- OAuth2.0: []
+tags:
+- name: 资源类型管理
+  description: ''
+- name: 角色管理
+  description: ''
+paths:
+  "/authorization/v1/resource_type/{id}":
+    summary: 资源类型
+    parameters:
+    - name: id
+      description: 资源类型唯一标识
+      schema:
+        type: string
+      in: path
+      required: true
+    put:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "./authorization.schemas.yaml#/components/schemas/ResourceTypeInfo"
+        required: true
+      tags:
+      - 资源类型管理
+      responses:
+        '204':
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 设置资源类型
+      description: 此接口支持`用户账户`调用。
+    delete:
+      tags:
+      - 资源类型管理
+      responses:
+        '204':
+          description: 删除成功且无返回
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 删除资源类型
+      description: 此接口支持`用户账户`调用。
+    get:
+      tags:
+      - 资源类型管理
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/GetResourceTypeInfo"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 获取资源类型信息
+      description: 此接口支持`用户账户`调用。
+  "/authorization/v1/resource_type":
+    summary: 资源类型
+    get:
+      tags:
+      - 资源类型管理
+      parameters:
+      - name: offset
+        description: 获取数据起始下标
+        schema:
+          format: int64
+          default: 0
+          minimum: 0
+          type: integer
+        in: query
+      - name: limit
+        description: 获取数据量
+        schema:
+          format: int64
+          default: 20
+          maximum: 1000
+          minimum: 1
+          type: integer
+        in: query
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/ListResourceTypeInfo"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 列举
+      description: 此接口支持`用户账户`调用。
+  "/authorization/v1/resource_all_operation":
+    summary: 获取资源所有操作
+    get:
+      tags:
+      - 资源类型管理
+      parameters:
+      - name: resource_type
+        description: 资源类型
+        schema:
+          type: string
+        required: true
+        in: query
+      - name: scope
+        description: "操作范围\r\n\r\n- `type` 资源类型\r\n- `instance` 资源实例"
+        schema:
+          type: string
+          enum:
+          - type
+          - instance
+        required: true
+        in: query
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/ResourceTypeOperationArray"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 获取资源所有操作
+      description: 此接口支持`用户账户`调用。
+  "/authorization/v2/resource_all_operation":
+    summary: 获取资源所有操作
+    get:
+      tags:
+      - 资源类型管理
+      parameters:
+      - name: resource_type
+        description: 资源类型
+        schema:
+          type: string
+        required: true
+        in: query
+      - name: scope
+        description: "操作范围\r\n\r\n- `type` 资源类型\r\n- `instance` 资源实例"
+        schema:
+          type: string
+          enum:
+          - type
+          - instance
+        required: true
+        in: query
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/ResourceTypeAllOperation"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 获取资源所有操作V2
+      description: 此接口支持`用户账户`调用。
+  "/authorization/v1/roles/{id}":
+    summary: 角色
+    get:
+      tags:
+      - 角色管理
+      parameters:
+      - name: resource_type_view_mode
+        description: "可授权的资源类型视图模式\r\n\r\n- `flat` 扁平\r\n- `hierarchy` 层级 \r\n\r\n参数不传时，默认扁平"
+        schema:
+          type: string
+          enum:
+          - flat
+          - hierarchy
+        in: query
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/RoleWithResourceInfo"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 获取指定角色信息
+      description: 此接口支持`用户账户`调用。
+    delete:
+      tags:
+      - 角色管理
+      responses:
+        '204':
+          description: 删除成功且无返回
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 删除
+      description: 此接口支持`用户账户`调用。
+    parameters:
+    - name: id
+      description: 角色唯一标识
+      schema:
+        type: string
+      in: path
+      required: true
+  "/authorization/v1/roles":
+    summary: 角色
+    get:
+      tags:
+      - 角色管理
+      parameters:
+      - name: offset
+        description: 获取数据起始下标
+        schema:
+          format: int64
+          default: 0
+          minimum: 0
+          type: integer
+        in: query
+      - name: limit
+        description: 获取数据量
+        schema:
+          format: int64
+          default: 20
+          maximum: 1000
+          minimum: 1
+          type: integer
+        in: query
+        required: false
+      - name: keyword
+        description: 搜索内容, 即角色名。
+        schema:
+          type: string
+        in: query
+        required: false
+      - name: source
+        description: "角色来源\r\n\r\n - `system` 系统\r\n\r\n - `business` 业务内置\r\n\r\n-
+          `user` 用户自定义\r\n\r\n 返回结果默认按照system、business、user 顺序排序\r\n\r\n 参数不传时默认返回business、user"
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - system
+            - business
+            - user
+        in: query
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/Roles"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 列举
+      description: 此接口支持`用户账户`调用。
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "./authorization.schemas.yaml#/components/schemas/CreateRoleInfo"
+        required: true
+      tags:
+      - 角色管理
+      responses:
+        '201':
+          headers:
+            Location:
+              schema:
+                format: uri
+                type: string
+              description: "`/api/authorization/v1/roles/{id}`"
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/RoleIDInfo"
+          description: 创建成功（返回创建成功的角色id）
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 创建
+      description: 此接口支持`用户账户`调用。
+  "/authorization/v1/resource_type_roles":
+    summary: 获取指定资源类型的角色列表
+    get:
+      tags:
+      - 角色查询
+      parameters:
+      - name: offset
+        description: 获取数据起始下标
+        schema:
+          format: int64
+          default: 0
+          minimum: 0
+          type: integer
+        in: query
+        required: false
+      - name: limit
+        description: 获取数据量
+        schema:
+          format: int64
+          default: 20
+          maximum: 1000
+          minimum: 1
+          type: integer
+        in: query
+        required: false
+      - name: resource_type_id
+        description: 资源类型唯一标识
+        schema:
+          type: string
+        in: query
+        required: true
+      - name: keyword
+        description: 搜索内容, 即角色名
+        schema:
+          type: string
+        in: query
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/ResourceTypeRoles"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 获取指定资源类型的角色列表
+      description: "此接口支持`用户账户`调用。\r\n\r\n 该接口只返回用户自定义角色"
+  "/authorization/v1/roles/{id}/{fields}":
+    put:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "./authorization.schemas.yaml#/components/schemas/RoleInfoNoRequired"
+        required: true
+      tags:
+      - 角色管理
+      parameters:
+      - name: id
+        description: 角色唯一标识
+        schema:
+          type: string
+        in: path
+        required: true
+      - name: fields
+        description: |
+          修改字段名：(可任意组合，若修改多个字段以逗号相隔)
+          - name
+          - description
+          - resource_type_scope
+
+          例如：
+          - name 修改名称，name必填
+          - description 修改描述，description必填
+          - resource_type_scope 修改资源类型范围，resource_type_scope必填
+        schema:
+          type: array
+          items:
+            type: string
+        in: path
+        required: true
+      responses:
+        '204':
+          description: 修改成功且无返回
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 修改
+      description: 此接口支持`用户账户`调用。
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema: {}
+    - name: fields
+      in: path
+      required: true
+      schema: {}
+  "/authorization/v1/role-members/{id}":
+    summary: 成员
+    get:
+      tags:
+      - 角色成员管理
+      parameters:
+      - name: offset
+        description: 获取数据起始下标
+        schema:
+          format: int64
+          default: 0
+          minimum: 0
+          type: integer
+        in: query
+      - name: limit
+        description: 获取数据量
+        schema:
+          format: int64
+          default: 20
+          maximum: 1000
+          minimum: 1
+          type: integer
+        in: query
+        required: false
+      - name: keyword
+        description: 搜索内容, 即成员名称。
+        schema:
+          type: string
+        in: query
+        required: false
+      - name: type
+        description: 成员类型
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - user
+            - department
+            - group
+            - app
+        in: query
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/MemberInfos"
+          description: 调用接口成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 列举
+      description: 此接口支持`用户账户`调用。
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "./authorization.schemas.yaml#/components/schemas/MemberRelations"
+        required: true
+      tags:
+      - 角色成员管理
+      parameters:
+      - name: id
+        description: 角色唯一标识
+        schema:
+          type: string
+        in: path
+        required: true
+      responses:
+        '204':
+          description: 操作成功且无返回
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 添加/删除
+      description: 此接口支持`用户账户`调用。
+    parameters:
+    - name: id
+      description: 角色唯一标识
+      schema:
+        type: string
+      in: path
+      required: true
+  "/authorization/v1/policy":
+    summary: 策略配置
+    get:
+      tags:
+      - 策略配置
+      parameters:
+      - name: offset
+        description: 获取数据起始下标
+        schema:
+          format: int64
+          default: 0
+          minimum: 0
+          type: integer
+        in: query
+        required: false
+      - name: limit
+        description: 获取数据量
+        schema:
+          format: int64
+          default: 20
+          maximum: 1000
+          minimum: 1
+          type: integer
+        in: query
+        required: false
+      - name: resource_id
+        description: 资源唯一标识
+        schema:
+          type: string
+        in: query
+        required: true
+      - name: resource_type
+        description: 资源类型
+        schema:
+          type: string
+        in: query
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/ListPolicyInfo"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 列举
+      description: 此接口支持`用户账户`调用。
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "./authorization.schemas.yaml#/components/schemas/CreatePolicyInfos"
+        required: true
+      tags:
+      - 策略配置
+      responses:
+        '201':
+          headers:
+            Location:
+              schema:
+                format: uri
+                type: string
+              description: "`/api/authorization/v1/policy/{ids}`, 多个用逗号分隔"
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/PolicyIDInfos"
+          description: 创建成功，返回创建成功的策略id集合
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 新建策略
+      description: 此接口支持`用户账户`调用。
+  "/authorization/v1/policy/{ids}":
+    summary: 策略
+    put:
+      tags:
+      - 策略配置
+      parameters:
+      - name: ids
+        description: 待更新的多个策略id，用逗号分隔
+        schema:
+          type: string
+        in: path
+        required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "./authorization.schemas.yaml#/components/schemas/UpdatePolicyInfos"
+        required: true
+      responses:
+        '204':
+          description: 修改成功且无返回
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 更新策略
+      description: 此接口支持`用户账户`调用。
+    delete:
+      tags:
+      - 策略配置
+      parameters:
+      - examples:
+          PolicyIDs:
+            value: 151bcb65-48ce-4b62-973f-0bb6685f9cb8,e44624ae-56ac-11ee-8cef-761dc86fda9f
+        name: ids
+        description: 待删除的多个策略id，用逗号分隔
+        schema:
+          type: string
+        in: path
+        required: true
+      responses:
+        '204':
+          description: 修改成功且无返回
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 删除策略
+      description: 此接口支持`用户账户`调用。
+  "/authorization/v1/resource-policy":
+    summary: 获取资源实例策略配置
+    get:
+      tags:
+      - 策略配置
+      parameters:
+      - name: offset
+        description: 获取数据起始下标
+        schema:
+          format: int64
+          default: 0
+          minimum: 0
+          type: integer
+        in: query
+        required: false
+      - name: limit
+        description: 获取数据量
+        schema:
+          format: int64
+          default: 20
+          maximum: 1000
+          minimum: 1
+          type: integer
+        in: query
+        required: false
+      - name: resource_id
+        description: 资源唯一标识
+        schema:
+          type: string
+        in: query
+        required: true
+      - name: resource_type
+        description: 资源类型
+        schema:
+          type: string
+        in: query
+        required: true
+      - name: include
+        description: "返回的额外信息\r\n\r\n - `obligation_types`：义务类型\r\n - `obligations`：义务"
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - obligation_types
+            - obligations
+        in: query
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/ListResourcePolicyInfo"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 获取资源实例策略配置
+      description: 此接口支持`用户账户`调用。
+  "/authorization/v1/accessor-policy":
+    summary: 获取访问者策略配置
+    get:
+      tags:
+      - 策略配置
+      parameters:
+      - name: accessor_id
+        description: 访问者唯一标识
+        schema:
+          type: string
+        in: query
+        required: true
+      - name: accessor_type
+        description: 访问者类型
+        schema:
+          type: string
+          enum:
+          - user
+          - department
+          - group
+          - role
+          - app
+        in: query
+        required: true
+      - name: resource_type
+        description: 资源类型, 该参数不传时，返回所有资源类型的策略配置。
+        schema:
+          type: string
+        in: query
+      - name: resource_id
+        description: 资源实例唯一标识, 该参数传入时，resource_type必传, 返回指定资源实例的策略配置。
+        schema:
+          type: string
+        in: query
+      - name: offset
+        description: 获取数据起始下标
+        schema:
+          format: int64
+          default: 0
+          minimum: 0
+          type: integer
+        in: query
+        required: false
+      - name: limit
+        description: 获取数据量，-1表示获取所有数据
+        schema:
+          format: int64
+          default: 20
+          maximum: 1000
+          minimum: -1
+          type: integer
+        in: query
+        required: false
+      - name: include
+        description: "返回的额外信息\r\n\r\n - `obligation_types`：义务类型\r\n - `obligations`：义务"
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - obligation_types
+            - obligations
+        in: query
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/ListAccessorPolicyInfo"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 获取访问者策略配置
+      description: 此接口支持`用户账户`调用。
+  "/authorization/v1/operation-check":
+    summary: 单个决策
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "./authorization.schemas.yaml#/components/schemas/CheckReq"
+        required: true
+      tags:
+      - 策略决策
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/CheckResult"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 单个决策
+      description: 此接口支持`用户账户` 和 `应用账户` 调用。
+  "/authorization/v1/resource-operation":
+    summary: 获取资源操作
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "./authorization.schemas.yaml#/components/schemas/ResourceOperationReq"
+        required: true
+      tags:
+      - 策略决策
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/ResourceOperationResult"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 获取资源操作
+      description: 此接口支持`用户账户` 和 `应用账户` 调用。
+  "/authorization/v1/resource-type-operation":
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "./authorization.schemas.yaml#/components/schemas/ResourceTypeOperationReq"
+        required: true
+      tags:
+      - 策略决策
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/ResourceTypeOperationResult"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 获取资源类型操作
+      description: "此接口支持`用户账户` 和 `应用账户` 调用。。\r\n\r\n 获取在多个资源类型上的可执行操作"
+  "/authorization/v1/obligation-types/{id}":
+    summary: 操作的义务
+    parameters:
+    - name: id
+      description: 义务类型唯一标识
+      schema:
+        type: string
+      in: path
+      required: true
+    put:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "./authorization.schemas.yaml#/components/schemas/ObligationTypeInfo"
+        required: true
+      tags:
+      - 义务类型管理
+      responses:
+        '204':
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 设置义务类型
+      description: 此接口支持`用户账户`调用。
+    delete:
+      tags:
+      - 义务类型管理
+      responses:
+        '204':
+          description: 删除成功且无返回
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 删除义务类型
+      description: 此接口支持`用户账户`调用。
+    get:
+      tags:
+      - 义务类型管理
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/ObligationTypeInfoWithName"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 获取指定义务类型信息
+      description: 此接口支持`用户账户`调用。
+  "/authorization/v1/obligation-types":
+    summary: 义务类型列表
+    parameters:
+    - name: offset
+      description: 获取数据起始下标
+      schema:
+        format: int64
+        default: 0
+        minimum: 0
+        type: integer
+      in: query
+    - name: limit
+      description: 获取数据量
+      schema:
+        format: int64
+        default: 20
+        maximum: 1000
+        minimum: 1
+        type: integer
+      in: query
+      required: false
+    get:
+      tags:
+      - 义务类型管理
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/ListObligationTypeInfos"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 获取义务类型列表
+      description: 此接口支持`用户账户`调用。
+  "/authorization/v1/query-obligation-types":
+    summary: 义务类型查询
+    parameters:
+    - name: resource_type_id
+      description: 资源类型唯一标识
+      schema:
+        type: string
+      in: query
+      required: true
+    - name: operation_ids
+      description: 操作列表, 该参数不传时，查询该资源类型上所有操作
+      schema:
+        type: array
+        items:
+          type: string
+      in: query
+      required: false
+    get:
+      tags:
+      - 义务类型查询
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/OperationObligationTypeArray"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 义务类型查询
+      description: 此接口支持`用户账户`调用。
+  "/authorization/v2/query-obligation-types":
+    summary: 义务类型查询
+    parameters:
+    - name: resource_type_ids
+      description: 资源类型唯一标识列表
+      schema:
+        type: array
+        items:
+          type: string
+      in: query
+      required: true
+    get:
+      tags:
+      - 义务类型查询
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/ResourceTypeObligationTypeArray"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 义务类型查询V2
+      description: 此接口支持`用户账户`调用。
+  "/authorization/v1/obligations":
+    summary: 义务
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "./authorization.schemas.yaml#/components/schemas/CreateObligationReq"
+        required: true
+      tags:
+      - 义务管理
+      responses:
+        '201':
+          headers:
+            Location:
+              schema:
+                format: uri
+                type: string
+              description: "`/api/authorization/v1/obligations/{id}`"
+          description: 创建成功（返回创建成功的义务id）
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 创建义务
+      description: 此接口支持`用户账户`调用。
+    get:
+      parameters:
+      - name: offset
+        description: 获取数据起始下标
+        schema:
+          format: int64
+          default: 0
+          minimum: 0
+          type: integer
+        in: query
+      - name: limit
+        description: 获取数据量
+        schema:
+          format: int64
+          default: 20
+          maximum: 1000
+          minimum: 1
+          type: integer
+        in: query
+        required: false
+      tags:
+      - 义务管理
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/ListObligationInfos"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 获取义务列表
+      description: 此接口支持`用户账户`调用。
+  "/authorization/v1/obligations/{id}":
+    summary: 义务
+    delete:
+      tags:
+      - 义务管理
+      responses:
+        '204':
+          description: 删除成功且无返回
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 删除义务
+      description: 此接口支持`用户账户`调用。
+    get:
+      tags:
+      - 义务管理
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/ObligationInfo"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 获取指定义务信息
+      description: 此接口支持`用户账户`调用。
+    parameters:
+    - name: id
+      description: 义务唯一标识
+      schema:
+        type: string
+      in: path
+      required: true
+  "/authorization/v1/obligations/{id}/{fields}":
+    summary: 义务
+    put:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "./authorization.schemas.yaml#/components/schemas/UpdateObligationInfo"
+        required: true
+      tags:
+      - 义务管理
+      responses:
+        '204':
+          description: 修改成功且无返回
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 修改义务
+      description: 此接口支持`用户账户`调用。
+    parameters:
+    - name: id
+      description: 义务唯一标识
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: fields
+      description: |
+        修改字段名：(可任意组合，若修改多个字段以逗号相隔)
+        - name
+        - description
+        - value
+
+        例如：
+        - name 修改名称，name必填
+        - description 修改描述，description必填
+        - value 修改参数值，value必填
+      schema:
+        type: array
+        items:
+          type: string
+      in: path
+      required: true
+  "/authorization/v1/query-obligations":
+    summary: 义务查询
+    parameters:
+    - name: resource_type_id
+      description: 资源类型唯一标识
+      schema:
+        type: string
+      in: query
+      required: true
+    - name: operation_ids
+      description: 操作列表, 该参数不传时，查询该资源类型上所有操作
+      schema:
+        type: array
+        items:
+          type: string
+      in: query
+      required: false
+    - name: obligation_type_ids
+      description: 义务类型列表, 该参数不传时，返回所有义务类型的义务
+      schema:
+        type: array
+        items:
+          type: string
+      in: query
+      required: false
+    get:
+      tags:
+      - 义务查询
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "./authorization.schemas.yaml#/components/schemas/OperationObligationArray"
+          description: 接口调用成功
+        '400':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd400"
+        '500':
+          "$ref": "./authorization.schemas.yaml#/components/responses/RespStd500"
+      summary: 义务查询
+      description: 此接口支持`用户账户`调用。
