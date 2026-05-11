@@ -11,6 +11,8 @@ export interface BknEntry {
   id: string
   /** 业务知识网络备注 */
   comment?: string
+  /** 业务知识网络配置颜色 */
+  color?: string
 }
 
 /** 渠道类型；省略时按飞书处理，响应中通常会规范为 `feishu` */

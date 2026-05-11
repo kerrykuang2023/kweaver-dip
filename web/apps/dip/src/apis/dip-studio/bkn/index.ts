@@ -42,6 +42,8 @@ function normalizeKnowledgeNetwork(item: Record<string, unknown>): BknKnowledgeN
     id,
     name,
     comment: typeof item.comment === 'string' ? item.comment : undefined,
+    icon: typeof item.icon === 'string' ? item.icon : undefined,
+    color: typeof item.color === 'string' ? item.color : undefined,
     update_time: Number.isFinite(parsedUpdateTime) ? parsedUpdateTime : undefined,
   }
 }

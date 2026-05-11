@@ -302,7 +302,7 @@ describe("DefaultDigitalHumanLogic lifecycle (filesystem + adapter)", () => {
       headers: new Headers(),
       body: JSON.stringify({
         entries: [
-          { id: "kn-1", name: "Knowledge 1", comment: "Comment 1", tag: "ignored" },
+          { id: "kn-1", name: "Knowledge 1", comment: "Comment 1", color: "#1677ff", tag: "ignored" },
           { id: "kn-2", name: "Knowledge 2", comment: "Comment 2" }
         ],
         total_count: 2
@@ -329,7 +329,7 @@ describe("DefaultDigitalHumanLogic lifecycle (filesystem + adapter)", () => {
 
     await expect(logic.getDigitalHuman(id, "user-token")).resolves.toMatchObject({
       id,
-      bkn: [{ id: "kn-1", name: "Knowledge 1", comment: "Comment 1" }]
+      bkn: [{ id: "kn-1", name: "Knowledge 1", comment: "Comment 1", color: "#1677ff" }]
     });
     expect(tokenAdapter.findBknScope).toHaveBeenCalledWith(id);
     expect(listKnowledgeNetworks).toHaveBeenCalledWith(
@@ -350,7 +350,7 @@ describe("DefaultDigitalHumanLogic lifecycle (filesystem + adapter)", () => {
       headers: new Headers(),
       body: JSON.stringify({
         items: [
-          { id: "kn-2", name: "Knowledge 2", comment: "Comment 2", owner: "ignored" },
+          { id: "kn-2", name: "Knowledge 2", comment: "Comment 2", color: "#52c41a", owner: "ignored" },
           { id: "kn-3", name: "Knowledge 3", comment: "Comment 3" }
         ],
         total: 2
@@ -377,7 +377,7 @@ describe("DefaultDigitalHumanLogic lifecycle (filesystem + adapter)", () => {
     });
 
     await expect(logic.getDigitalHuman(id)).resolves.toMatchObject({
-      bkn: [{ id: "kn-2", name: "Knowledge 2", comment: "Comment 2" }]
+      bkn: [{ id: "kn-2", name: "Knowledge 2", comment: "Comment 2", color: "#52c41a" }]
     });
   });
 
@@ -1366,7 +1366,7 @@ describe("DefaultDigitalHumanLogic lifecycle (filesystem + adapter)", () => {
       status: 200,
       headers: new Headers(),
       body: JSON.stringify({
-        entries: [{ id: "kn-1", name: "Knowledge 1", comment: "Comment 1" }],
+        entries: [{ id: "kn-1", name: "Knowledge 1", comment: "Comment 1", color: "#1677ff" }],
         total_count: 1
       })
     });
@@ -1398,7 +1398,7 @@ describe("DefaultDigitalHumanLogic lifecycle (filesystem + adapter)", () => {
     });
 
     expect(result.bkn).toEqual([
-      { id: "kn-1", name: "Knowledge 1", comment: "Comment 1" }
+      { id: "kn-1", name: "Knowledge 1", comment: "Comment 1", color: "#1677ff" }
     ]);
     expect(setAgentFile).not.toHaveBeenCalledWith(
       expect.objectContaining({ name: "SECRET" })

@@ -433,6 +433,15 @@ DIP 数字员工 Web 界面
 | [\].skills | string[] | 绑定技能列表，可选 |
 | [\].channel | ChannelConfig | 渠道配置，可选 |
 
+BknEntry 字段：
+
+| 参数 | 类型 | 说明 |
+| -- | -- | -- |
+| name | string | 业务知识网络名称 |
+| id | string | 业务知识网络 ID |
+| comment | string | 业务知识网络备注，可选 |
+| color | string | 业务知识网络配置颜色，可选 |
+
 #### 获取预置数字员工模板列表
 
 `GET /api/dip-studio/v1/digital-human/built-in`

@@ -9,6 +9,11 @@ describe('AppIcon', () => {
     expect(screen.getByText('测')).toBeInTheDocument()
   })
 
+  it('无 icon 时支持自定义 Avatar 背景色', () => {
+    const { container } = render(<AppIcon name="色彩" color="#1677ff" />)
+    expect(container.querySelector('.ant-avatar')).toHaveStyle({ backgroundColor: '#1677ff' })
+  })
+
   it('内置且无 icon 时仍回退为名称首字', () => {
     render(<AppIcon name="App" isBuiltIn />)
     expect(screen.getByText('A')).toBeInTheDocument()

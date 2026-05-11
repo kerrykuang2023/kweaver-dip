@@ -18,6 +18,8 @@ interface AppIconProps {
   className?: string
   /** 自定义样式 */
   style?: React.CSSProperties
+  /** 无图标时 Avatar 背景色 */
+  color?: string
   /** 是否由边框 */
   hasBorder?: boolean
   /** 是否内置图标 */
@@ -35,6 +37,7 @@ const AppIcon = ({
   shape = 'circle',
   className,
   style,
+  color,
   hasBorder = false,
   isBuiltIn = false,
 }: AppIconProps) => {
@@ -48,6 +51,7 @@ const AppIcon = ({
           size={size}
           shape={shape}
           className={clsx('shrink-0', hasBorder && 'border border-[var(--dip-border-color)]')}
+          style={color ? { backgroundColor: color } : undefined}
         >
           {name?.charAt(0) || ''}
         </Avatar>

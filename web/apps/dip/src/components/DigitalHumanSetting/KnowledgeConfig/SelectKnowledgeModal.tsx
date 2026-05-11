@@ -110,7 +110,14 @@ const SelectKnowledgeModal = ({
               />
               <div className="flex gap-x-3 pr-6">
                 <div className="flex h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl">
-                  <AppIcon name={item.name} size={48} className="w-full h-full" shape="square" />
+                  <AppIcon
+                    icon={item.icon}
+                    name={item.name}
+                    size={48}
+                    className="w-full h-full"
+                    shape="square"
+                    color={item.color}
+                  />
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span

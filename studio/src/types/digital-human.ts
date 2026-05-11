@@ -187,6 +187,11 @@ export interface BknEntry {
    * Business Knowledge Network comment.
    */
   comment?: string;
+
+  /**
+   * Business Knowledge Network icon color.
+   */
+  color?: string;
 }
 
 /**

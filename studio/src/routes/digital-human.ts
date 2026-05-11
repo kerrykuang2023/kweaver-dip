@@ -509,7 +509,13 @@ function parseBknArray(value: unknown): BknEntry[] | undefined {
       throw new HttpError(400, "Each bkn entry must have both name and id");
     }
     const comment = parseOptionalString(raw.comment);
-    entries.push(comment === undefined ? { name, id } : { name, id, comment });
+    const color = parseOptionalString(raw.color);
+    entries.push({
+      name,
+      id,
+      ...(comment === undefined ? {} : { comment }),
+      ...(color === undefined ? {} : { color })
+    });
   }
   return entries.length > 0 ? entries : undefined;
 }

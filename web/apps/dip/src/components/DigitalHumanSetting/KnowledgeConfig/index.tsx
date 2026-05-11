@@ -108,6 +108,7 @@ const KnowledgeConfig = ({ readonly }: KnowledgeConfigProps) => {
       name: k.name,
       id: k.id,
       comment: k.comment,
+      color: k.color,
     }))
     if (!appAccount) {
       setPendingBkn(next)
@@ -141,13 +142,14 @@ const KnowledgeConfig = ({ readonly }: KnowledgeConfigProps) => {
         dataIndex: 'name',
         key: 'name',
         width: '40%',
-        render: (text: string) => (
+        render: (text: string, record: BknEntry) => (
           <div className="flex items-center gap-2 truncate">
             <AppIcon
               name={text}
               size={20}
               className="w-6 h-6 rounded flex-shrink-0"
               shape="square"
+              color={record.color}
             />
             <span title={text} className="truncate">
               {text || '--'}

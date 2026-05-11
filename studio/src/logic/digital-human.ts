@@ -644,13 +644,14 @@ interface BknKnowledgeNetworkBody {
   id?: unknown;
   name?: unknown;
   comment?: unknown;
+  color?: unknown;
 }
 
 /**
  * Parses and projects BKN Backend list response entries for digital-human details.
  *
  * @param body Raw JSON body returned by BKN Backend.
- * @returns Knowledge network entries with only id, name, and comment.
+ * @returns Knowledge network entries with id, name, comment, and icon color.
  */
 function parseKnowledgeNetworkListResponse(body: string): BknEntry[] {
   const parsed = JSON.parse(body) as BknListResponseBody;
@@ -674,7 +675,8 @@ function parseKnowledgeNetworkListResponse(body: string): BknEntry[] {
       return {
         id: network.id,
         name: network.name,
-        comment: typeof network.comment === "string" ? network.comment : ""
+        comment: typeof network.comment === "string" ? network.comment : "",
+        ...(typeof network.color === "string" ? { color: network.color } : {})
       };
     })
     .filter((entry): entry is BknEntry => entry !== undefined);

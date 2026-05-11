@@ -12,6 +12,9 @@ components:
         comment:
           type: string
           title: 业务知识网络备注
+        color:
+          type: string
+          title: 业务知识网络配置颜色
       required:
         - name
         - id

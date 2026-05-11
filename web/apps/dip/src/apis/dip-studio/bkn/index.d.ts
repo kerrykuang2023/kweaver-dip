@@ -15,6 +15,8 @@ export interface BknKnowledgeNetworkInfo {
   id: string
   name: string
   comment?: string
+  icon?: string
+  color?: string
   update_time?: number
   [key: string]: unknown
 }
