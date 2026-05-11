@@ -1,0 +1,38 @@
+{
+  "changePassword": {
+    "menuItem": "修改密码",
+    "title": "修改密码",
+    "account": "账号",
+    "oldPassword": "旧密码",
+    "newPassword": "新密码",
+    "confirmPassword": "确认新密码",
+    "policyTip": "密码为 6~100 位，可包含 英文 、 数字 、空格或半角特殊字符。",
+    "strongPolicyTip": "密码为 {length}~100 位，必须同时包含 大小写英文字母、数字与半角特殊字符。",
+    "loadingConfig": "正在获取密码策略...",
+    "success": "密码修改成功，请重新登录",
+    "placeholder": {
+      "oldPassword": "请输入旧密码",
+      "newPassword": "请输入新密码",
+      "confirmPassword": "请确认新密码"
+    },
+    "validation": {
+      "oldPasswordRequired": "旧密码不能为空。",
+      "newPasswordRequired": "新密码不能为空。",
+      "confirmPasswordRequired": "确认新密码不能为空。",
+      "confirmPasswordMismatch": "两次输入的密码不一致。",
+      "samePassword": "新密码不能和旧密码相同",
+      "passwordLength": "密码长度需为 {min} 到 {max} 位",
+      "passwordCharset": "密码只能包含英文、数字、空格或半角特殊字符"
+    },
+    "errors": {
+      "oldPasswordIncorrect": "旧密码不正确",
+      "newPasswordInvalid": "新密码不符合规范。",
+      "newPasswordIsInitial": "新密码不能为初始密码",
+      "passwordInvalidLocked": "旧密码错误次数超过限制，账号已被锁定，请稍后重试",
+      "accountLocked": "账号已被锁定，请联系管理员",
+      "accountUnavailable": "无法获取当前账号，请重新登录后重试",
+      "configLoadFailed": "密码策略获取失败，请稍后重试。",
+      "submitFailed": "修改密码失败，请稍后重试"
+    }
+  }
+}

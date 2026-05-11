@@ -4,6 +4,9 @@ import aiPromptInput_tw from './ai-prompt-input/zh-TW.json'
 import application_en from './application/en-US.json'
 import application_zh from './application/zh-CN.json'
 import application_tw from './application/zh-TW.json'
+import changePassword_en from './change-password/en-US.json'
+import changePassword_zh from './change-password/zh-CN.json'
+import changePassword_tw from './change-password/zh-TW.json'
 import dataAgent_en from './data-agent/en-US.json'
 import dataAgent_zh from './data-agent/zh-CN.json'
 import dataAgent_tw from './data-agent/zh-TW.json'
@@ -52,6 +55,7 @@ const zh_CN = {
   ...initialConfiguration_zh,
   ...login_zh,
   ...application_zh,
+  ...changePassword_zh,
   ...routes_zh,
   ...aiPromptInput_zh,
   ...dataAgent_zh,
@@ -70,6 +74,7 @@ const zh_TW = {
   ...initialConfiguration_tw,
   ...login_tw,
   ...application_tw,
+  ...changePassword_tw,
   ...routes_tw,
   ...aiPromptInput_tw,
   ...dataAgent_tw,
@@ -88,6 +93,7 @@ const en_US = {
   ...initialConfiguration_en,
   ...login_en,
   ...application_en,
+  ...changePassword_en,
   ...routes_en,
   ...aiPromptInput_en,
   ...dataAgent_en,

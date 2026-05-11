@@ -4,8 +4,10 @@ import clsx from 'classnames'
 import { useState } from 'react'
 import intl from 'react-intl-universal'
 import AvatarIcon from '@/assets/images/sider/avatar.svg?react'
+import ChangePasswordModal from '@/components/ChangePasswordModal'
 import type { RouteModule } from '@/routes/types'
 import { useUserInfoStore } from '@/stores'
+import { canShowChangePasswordEntry } from '@/utils/change-password'
 import SystemSettingsModal from '../../../pages/InitialConfiguration/components/SystemSettingsModal'
 import IconFont from '../../IconFont'
 export interface UserMenuItemProps {
@@ -22,6 +24,7 @@ export const UserMenuItem = ({ collapsed, module }: UserMenuItemProps) => {
     module !== 'system' &&
     module !== 'business'
   const [open, setOpen] = useState(false)
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -29,6 +32,8 @@ export const UserMenuItem = ({ collapsed, module }: UserMenuItemProps) => {
 
   const displayName =
     userInfo?.email || userInfo?.vision_name || userInfo?.account || intl.get('sider.defaultUser')
+  const account = userInfo?.account ?? ''
+  const showChangePassword = canShowChangePasswordEntry(userInfo)
 
   const menuItems: MenuProps['items'] = [
     ...(showSystemSettings
@@ -45,6 +50,16 @@ export const UserMenuItem = ({ collapsed, module }: UserMenuItemProps) => {
             onClick: () => {
               setOpen(true)
             },
+          },
+        ]
+      : []),
+    ...(showChangePassword
+      ? [
+          {
+            key: 'change-password',
+            label: intl.get('changePassword.menuItem'),
+            title: '',
+            onClick: () => setChangePasswordOpen(true),
           },
         ]
       : []),
@@ -88,6 +103,17 @@ export const UserMenuItem = ({ collapsed, module }: UserMenuItemProps) => {
         {trigger}
       </Dropdown>
       <SystemSettingsModal open={open} onClose={() => setOpen(false)} />
+      {changePasswordOpen ? (
+        <ChangePasswordModal
+          open={changePasswordOpen}
+          account={account}
+          onCancel={() => setChangePasswordOpen(false)}
+          onSuccess={() => {
+            setChangePasswordOpen(false)
+            window.setTimeout(handleLogout, 1000)
+          }}
+        />
+      ) : null}
     </div>
   )
 }

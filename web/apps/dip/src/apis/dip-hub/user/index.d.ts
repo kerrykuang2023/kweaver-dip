@@ -14,6 +14,8 @@ export interface UserInfo {
   id: string
   /** 账号 */
   account: string
+  /** 用户类型：1 本地用户，2 域用户，3 外部用户 */
+  user_type?: 1 | 2 | 3
   /** 显示名称 */
   vision_name: string
   /** 邮箱 */

@@ -1,0 +1,38 @@
+{
+  "changePassword": {
+    "menuItem": "Change password",
+    "title": "Change password",
+    "account": "Account",
+    "oldPassword": "Old password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "policyTip": "Use 6~100 characters. Letters, numbers, spaces, and half-width special characters are supported.",
+    "strongPolicyTip": "Use {length}~100 characters and include uppercase letters, lowercase letters, numbers, and half-width special characters.",
+    "loadingConfig": "Loading password policy...",
+    "success": "Password changed. Please sign in again.",
+    "placeholder": {
+      "oldPassword": "Enter the old password",
+      "newPassword": "Enter a new password",
+      "confirmPassword": "Confirm the new password"
+    },
+    "validation": {
+      "oldPasswordRequired": "Old password cannot be empty.",
+      "newPasswordRequired": "New password cannot be empty.",
+      "confirmPasswordRequired": "Confirm new password cannot be empty.",
+      "confirmPasswordMismatch": "The two passwords do not match.",
+      "samePassword": "The new password must be different from the old password",
+      "passwordLength": "Password must be {min} to {max} characters",
+      "passwordCharset": "Use letters, numbers, spaces, or half-width special characters"
+    },
+    "errors": {
+      "oldPasswordIncorrect": "The old password is incorrect",
+      "newPasswordInvalid": "The new password does not meet the policy.",
+      "newPasswordIsInitial": "The new password cannot be the initial password",
+      "passwordInvalidLocked": "Too many incorrect old password attempts. The account is locked. Try again later.",
+      "accountLocked": "The account is locked. Contact an administrator.",
+      "accountUnavailable": "Unable to get the current account. Sign in again and try again.",
+      "configLoadFailed": "Failed to load the password policy. Try again later.",
+      "submitFailed": "Failed to change password. Try again later."
+    }
+  }
+}

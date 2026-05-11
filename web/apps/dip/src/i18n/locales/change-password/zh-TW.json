@@ -1,0 +1,38 @@
+{
+  "changePassword": {
+    "menuItem": "修改密碼",
+    "title": "修改密碼",
+    "account": "帳號",
+    "oldPassword": "舊密碼",
+    "newPassword": "新密碼",
+    "confirmPassword": "確認新密碼",
+    "policyTip": "密碼為 6~100 位，可包含 英文 、 數字 、空格或半形特殊字元。",
+    "strongPolicyTip": "密碼為 {length}~100 位，必須同時包含 大小寫英文字母、數字與半形特殊字元。",
+    "loadingConfig": "正在取得密碼策略...",
+    "success": "密碼修改成功，請重新登入",
+    "placeholder": {
+      "oldPassword": "請輸入舊密碼",
+      "newPassword": "請輸入新密碼",
+      "confirmPassword": "請確認新密碼"
+    },
+    "validation": {
+      "oldPasswordRequired": "舊密碼不能為空。",
+      "newPasswordRequired": "新密碼不能為空。",
+      "confirmPasswordRequired": "確認新密碼不能為空。",
+      "confirmPasswordMismatch": "兩次輸入的密碼不一致。",
+      "samePassword": "新密碼不能和舊密碼相同",
+      "passwordLength": "密碼長度需為 {min} 到 {max} 位",
+      "passwordCharset": "密碼只能包含英文、數字、空格或半形特殊字元"
+    },
+    "errors": {
+      "oldPasswordIncorrect": "舊密碼不正確",
+      "newPasswordInvalid": "新密碼不符合規範。",
+      "newPasswordIsInitial": "新密碼不能為初始密碼",
+      "passwordInvalidLocked": "舊密碼錯誤次數超過限制，帳號已被鎖定，請稍後重試",
+      "accountLocked": "帳號已被鎖定，請聯絡管理員",
+      "accountUnavailable": "無法取得目前帳號，請重新登入後重試",
+      "configLoadFailed": "密碼策略取得失敗，請稍後重試。",
+      "submitFailed": "修改密碼失敗，請稍後重試"
+    }
+  }
+}
