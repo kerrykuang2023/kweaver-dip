@@ -1,4 +1,5 @@
-import { Button, Flex, Modal, message, Table, Tag, Tooltip } from 'antd'
+import { DeleteOutlined, InfoCircleFilled, SwapOutlined } from '@ant-design/icons'
+import { Button, Flex, Modal, message, Table, Tooltip } from 'antd'
 import { memo, useMemo, useState } from 'react'
 import intl from 'react-intl-universal'
 import {
@@ -187,7 +188,7 @@ const KnowledgeConfig = ({ readonly }: KnowledgeConfigProps) => {
   return (
     <ScrollBarContainer className="h-full flex flex-col p-6">
       {contextHolder}
-      <div className="flex justify-between mb-4">
+      <div className="mb-4 flex justify-between">
         <div className="flex flex-col gap-y-1">
           <div className="font-medium text-[--dip-text-color]">
             {intl.get('digitalHuman.setting.menuKnowledge')}
@@ -196,8 +197,44 @@ const KnowledgeConfig = ({ readonly }: KnowledgeConfigProps) => {
             {intl.get('digitalHuman.knowledge.sectionDesc')}
           </div>
         </div>
-        {bkn.length > 0 && !readonly && (
-          <div className="flex items-end gap-x-3">
+        <div className="flex flex-col items-end gap-y-3">
+          <div className="flex h-6 items-center gap-x-3">
+            <div className="max-w-[360px] truncate rounded-lg bg-[#fafafa] px-2 py-px text-xs leading-5 text-[#6c798b]">
+              <span>{intl.get('digitalHuman.appAccountModal.statusPrefix')}</span>
+              <span className={appAccount ? '' : 'text-[rgba(108,121,139,0.45)]'}>
+                {appAccount?.name || intl.get('digitalHuman.appAccountModal.unboundStatus')}
+              </span>
+            </div>
+            {appAccount && !readonly && (
+              <div className="flex items-center gap-x-3">
+                <Tooltip title={intl.get('digitalHuman.appAccountModal.switch')}>
+                  <Button
+                    type="text"
+                    className="h-6 w-6 rounded p-0 text-[--dip-text-color-45] hover:bg-[rgba(0,0,0,0.06)]"
+                    icon={<SwapOutlined className="text-base" />}
+                    onClick={() => setSelectAppAccountModalOpen(true)}
+                  >
+                    <span className="sr-only">
+                      {intl.get('digitalHuman.appAccountModal.switch')}
+                    </span>
+                  </Button>
+                </Tooltip>
+                <Tooltip title={intl.get('digitalHuman.appAccountModal.delete')}>
+                  <Button
+                    type="text"
+                    className="h-6 w-6 rounded p-0 text-[--dip-text-color-45] hover:bg-[rgba(0,0,0,0.06)]"
+                    icon={<DeleteOutlined className="text-base" />}
+                    onClick={handleDeleteAppAccount}
+                  >
+                    <span className="sr-only">
+                      {intl.get('digitalHuman.appAccountModal.delete')}
+                    </span>
+                  </Button>
+                </Tooltip>
+              </div>
+            )}
+          </div>
+          {bkn.length > 0 && !readonly && (
             <Button
               color="primary"
               icon={<IconFont type="icon-add" />}
@@ -206,33 +243,26 @@ const KnowledgeConfig = ({ readonly }: KnowledgeConfigProps) => {
             >
               {intl.get('digitalHuman.knowledge.addButton')}
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-      <div className="mb-4 flex min-h-8 items-center gap-2">
-        {appAccount ? (
-          <>
-            <Tag className="m-0 max-w-[360px] truncate">
-              {intl.get('digitalHuman.appAccountModal.boundPrefix')}
-              {appAccount.name}
-            </Tag>
-            {!readonly && (
-              <>
-                <Button type="link" size="small" onClick={() => setSelectAppAccountModalOpen(true)}>
-                  {intl.get('digitalHuman.appAccountModal.switch')}
-                </Button>
-                <Button type="link" size="small" danger onClick={handleDeleteAppAccount}>
-                  {intl.get('digitalHuman.appAccountModal.delete')}
-                </Button>
-              </>
-            )}
-          </>
-        ) : (
-          <span className="text-[--dip-text-color-45]">
-            {intl.get('digitalHuman.appAccountModal.unbound')}
+      {!appAccount && bkn.length > 0 && (
+        <div className="mb-3 flex h-10 items-center rounded-lg border border-[#bae0ff] bg-[#e6f4ff] px-3 text-sm leading-8 text-[--dip-text-color]">
+          <InfoCircleFilled className="mr-2 shrink-0 text-[#1677ff]" />
+          <span className="min-w-0 flex-1 truncate">
+            {intl.get('digitalHuman.appAccountModal.unboundKnowledgeWarning')}
           </span>
-        )}
-      </div>
+          {!readonly && (
+            <Button
+              type="link"
+              className="h-[22px] px-0 text-sm"
+              onClick={() => setSelectAppAccountModalOpen(true)}
+            >
+              {intl.get('digitalHuman.appAccountModal.bindNow')}
+            </Button>
+          )}
+        </div>
+      )}
       <Table<BknEntry>
         dataSource={bkn}
         columns={knowledgeColumns}

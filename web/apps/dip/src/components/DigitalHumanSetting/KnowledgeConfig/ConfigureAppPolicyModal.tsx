@@ -1,10 +1,9 @@
 import type { ModalProps } from 'antd'
-import { Checkbox, Modal, message, Table } from 'antd'
+import { Button, Checkbox, Modal, message } from 'antd'
 import { useEffect, useState } from 'react'
 import intl from 'react-intl-universal'
 import { createAuthorizationPolicies } from '@/apis'
 import type { BknEntry } from '@/apis/dip-studio/digital-human'
-import AppIcon from '@/components/AppIcon'
 
 export const BKN_POLICY_RESOURCE_TYPE = 'knowledge_network'
 export const BKN_QUERY_OPERATION_ID = 'data_query'
@@ -80,64 +79,70 @@ const ConfigureAppPolicyModal = ({
       centered
       destroyOnHidden
       mask={{ closable: false }}
-      width={640}
+      width={480}
       okText={intl.get('global.ok')}
       cancelText={intl.get('global.cancel')}
+      okButtonProps={{
+        style: { width: 74, height: 32, borderRadius: 6 },
+      }}
+      footer={(_, { OkBtn }) => (
+        <div className="flex items-center justify-end gap-2">
+          <OkBtn />
+          <Button style={{ width: 74, height: 32, borderRadius: 6 }} onClick={onCancel}>
+            {intl.get('global.cancel')}
+          </Button>
+        </div>
+      )}
+      styles={{
+        container: {
+          display: 'flex',
+          flexDirection: 'column',
+          height: 430,
+          padding: 0,
+        },
+        header: {
+          flex: '0 0 56px',
+          marginBottom: 0,
+          padding: '0 24px',
+          display: 'flex',
+          alignItems: 'center',
+        },
+        body: {
+          flex: 1,
+          minHeight: 0,
+          padding: '8px 24px 0',
+        },
+        footer: {
+          flex: '0 0 54px',
+          marginTop: 0,
+          padding: '11px 24px',
+        },
+      }}
     >
       {contextHolder}
-      <div className="mb-3 text-[--dip-text-color-65]">
+      <div className="mb-[13px] text-sm font-normal leading-[22px] text-[--dip-text-color-85]">
         {intl.get('digitalHuman.appPolicyModal.desc')}
       </div>
-      <Table<BknEntry>
-        dataSource={networks}
-        pagination={false}
-        rowKey={(record) => record.id}
-        size="small"
-        columns={[
-          {
-            title: '',
-            dataIndex: 'id',
-            width: 48,
-            render: (id: string) => (
-              <Checkbox
-                checked={selectedIds.includes(id)}
-                onChange={(e) => {
-                  setSelectedIds((current) =>
-                    e.target.checked ? [...current, id] : current.filter((item) => item !== id),
-                  )
-                }}
-              />
-            ),
-          },
-          {
-            title: intl.get('digitalHuman.common.columnName'),
-            dataIndex: 'name',
-            render: (text: string) => (
-              <div className="flex items-center gap-2 truncate">
-                <AppIcon
-                  name={text}
-                  size={20}
-                  className="h-6 w-6 flex-shrink-0 rounded"
-                  shape="square"
-                />
-                <span className="truncate" title={text}>
-                  {text || '--'}
-                </span>
-              </div>
-            ),
-          },
-          {
-            title: intl.get('digitalHuman.appPolicyModal.operation'),
-            width: 120,
-            render: () => intl.get('digitalHuman.appPolicyModal.dataQuery'),
-          },
-          {
-            title: intl.get('digitalHuman.appPolicyModal.expiresAt'),
-            width: 120,
-            render: () => intl.get('digitalHuman.appPolicyModal.permanent'),
-          },
-        ]}
-      />
+      <div className="max-h-[200px] overflow-y-auto">
+        {networks.map((network) => (
+          <Checkbox
+            key={network.id}
+            checked={selectedIds.includes(network.id)}
+            className="flex h-10 items-center text-sm font-normal leading-8 text-[--dip-text-color-85]"
+            onChange={(e) => {
+              setSelectedIds((current) =>
+                e.target.checked
+                  ? [...current, network.id]
+                  : current.filter((item) => item !== network.id),
+              )
+            }}
+          >
+            <span className="inline-block max-w-[384px] truncate align-bottom" title={network.name}>
+              {network.name || '--'}
+            </span>
+          </Checkbox>
+        ))}
+      </div>
     </Modal>
   )
 }

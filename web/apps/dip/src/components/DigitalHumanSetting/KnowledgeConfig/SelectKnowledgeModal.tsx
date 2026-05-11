@@ -88,7 +88,7 @@ const SelectKnowledgeModal = ({
 
   const renderKnowledgeList = () => {
     return (
-      <div className="grid grid-cols-2 gap-[14px]">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-4">
         {knowledgeList.map((item) => {
           const isSelected = selectedList.some((selected) => selected.id === item.id)
           return (
@@ -96,32 +96,31 @@ const SelectKnowledgeModal = ({
               key={item.id}
               type="button"
               className={clsx(
-                'relative flex min-h-[94px] flex-col rounded-lg border border-[--dip-border-color] px-5 py-4 text-left outline-none transition-colors hover:bg-[rgba(0,0,0,0.02)]',
+                'relative flex h-[145px] flex-col rounded-[10px] border border-[rgba(0,0,0,0.1)] bg-white px-4 py-4 text-left outline-none transition-colors hover:bg-[rgba(0,0,0,0.02)]',
                 isSelected &&
                   '!border-[--dip-primary-color] !bg-[rgba(18,110,227,0.06)] !hover:bg-[rgba(18,110,227,0.1)]',
               )}
               onClick={() => handleSelect(item)}
             >
-              <div className="flex items-center gap-x-3">
-                <div className="w-12 h-12 rounded-xl flex-shrink-0 flex overflow-hidden">
+              <Checkbox
+                className="absolute right-4 top-[19px]"
+                checked={isSelected}
+                onClick={(e) => e.stopPropagation()}
+                onChange={() => handleSelect(item)}
+              />
+              <div className="flex gap-x-3 pr-6">
+                <div className="flex h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl">
                   <AppIcon name={item.name} size={48} className="w-full h-full" shape="square" />
                 </div>
-                <div className="flex min-w-0 flex-1 flex-col gap-y-2">
-                  <div className="flex min-w-0 items-center gap-x-2">
-                    <span
-                      className="min-w-0 flex-1 truncate text-base font-bold text-[--dip-text-color-85]"
-                      title={item.name}
-                    >
-                      {item.name}
-                    </span>
-                    <Checkbox
-                      checked={isSelected}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={() => handleSelect(item)}
-                    />
-                  </div>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span
+                    className="min-w-0 truncate text-sm font-medium leading-[22px] text-[--dip-text-color-85]"
+                    title={item.name}
+                  >
+                    {item.name}
+                  </span>
                   <div
-                    className="mt-2 line-clamp-2 text-xs text-[--dip-text-color-65]"
+                    className="mt-2 line-clamp-2 text-xs font-normal leading-5 text-[--dip-text-color-85]"
                     title={item.comment}
                   >
                     {item.comment?.trim() || intl.get('global.notDes')}
@@ -129,9 +128,9 @@ const SelectKnowledgeModal = ({
                 </div>
               </div>
 
-              <div className="flex flex-col justify-end flex-1 h-0">
-                <div className="h-px bg-[--dip-line-color-10] my-2" />
-                <div className="text-right mt-2 text-xs text-[--dip-text-color-65]">
+              <div className="mt-auto">
+                <div className="mb-2 h-px bg-[--dip-line-color-10]" />
+                <div className="text-right text-xs font-normal leading-6 text-[--dip-text-color-65]">
                   {intl.get('digitalHuman.knowledgeModal.updatedPrefix')}
                   {formatTimeSlash(item.update_time || '') || '--'}
                 </div>

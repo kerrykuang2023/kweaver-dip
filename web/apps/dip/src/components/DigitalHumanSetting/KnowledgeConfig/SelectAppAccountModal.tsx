@@ -1,4 +1,4 @@
-import { PlusOutlined } from '@ant-design/icons'
+import { SearchOutlined } from '@ant-design/icons'
 import type { ModalProps } from 'antd'
 import { Button, Input, Modal, Radio, Spin } from 'antd'
 import { useEffect, useState } from 'react'
@@ -96,16 +96,16 @@ const SelectAppAccountModal = ({
         value={selectedId}
         onChange={(e) => setSelectedId(e.target.value)}
       >
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col">
           {accounts.map((account) => (
             <button
               key={account.id}
               type="button"
-              className="flex h-[52px] items-center gap-3 rounded-md px-0 text-left transition-colors hover:bg-[var(--dip-hover-bg-color)]"
+              className="flex h-10 items-center gap-2 rounded px-0 text-left transition-colors hover:bg-[var(--dip-hover-bg-color)]"
               onClick={() => setSelectedId(account.id)}
             >
               <Radio value={account.id} />
-              <span className="min-w-0 flex-1 truncate text-sm font-normal text-[--dip-text-color]">
+              <span className="min-w-0 flex-1 truncate text-sm font-normal leading-8 text-[--dip-text-color]">
                 {account.name}
               </span>
             </button>
@@ -118,56 +118,83 @@ const SelectAppAccountModal = ({
   return (
     <Modal
       title={
-        <div className="flex flex-col gap-1">
-          <span className="text-base font-medium leading-6 text-[--dip-text-color]">
-            {intl.get('digitalHuman.appAccountModal.title')}
-          </span>
-          <span className="text-xs font-normal leading-5 text-[--dip-text-color-45]">
-            {intl.get('digitalHuman.appAccountModal.subtitle')}
-          </span>
-        </div>
+        <span className="text-base font-bold leading-[19px] text-[--dip-text-color]">
+          {intl.get('digitalHuman.appAccountModal.title')}
+        </span>
       }
       open={open}
       onOk={handleOk}
       onCancel={onCancel}
-      okButtonProps={{ disabled: !hasSelectedAccount }}
+      okButtonProps={{
+        disabled: !hasSelectedAccount,
+        style: { width: 74, height: 32, borderRadius: 6 },
+      }}
       centered
       destroyOnHidden
       mask={{ closable: false }}
-      width={560}
+      width={480}
       okText={intl.get('global.ok')}
       cancelText={intl.get('global.cancel')}
       footer={(_, { OkBtn }) => (
-        <div className="flex items-center justify-end gap-3">
-          <Button onClick={onCancel}>{intl.get('global.cancel')}</Button>
+        <div className="flex items-center justify-end gap-2">
           <OkBtn />
+          <Button style={{ width: 74, height: 32, borderRadius: 6 }} onClick={onCancel}>
+            {intl.get('global.cancel')}
+          </Button>
         </div>
       )}
       styles={{
+        container: {
+          display: 'flex',
+          flexDirection: 'column',
+          height: 501,
+          padding: 0,
+        },
         header: {
-          marginBottom: 16,
+          flex: '0 0 56px',
+          marginBottom: 0,
+          padding: '0 24px',
+          display: 'flex',
+          alignItems: 'center',
         },
         body: {
-          paddingTop: 0,
+          flex: 1,
+          minHeight: 0,
+          padding: '15px 24px 0',
+        },
+        footer: {
+          flex: '0 0 80px',
+          marginTop: 0,
+          padding: '24px 24px',
         },
       }}
     >
-      <div className="flex flex-col gap-5">
-        <div className="flex items-center gap-3">
-          <Input.Search
+      <div className="flex flex-col">
+        <div className="mb-4 text-sm font-normal leading-[22px] text-[--dip-text-color]">
+          {intl.get('digitalHuman.appAccountModal.subtitle')}
+        </div>
+        <div className="mb-4 flex items-center gap-2">
+          <Input
             allowClear
             value={keyword}
             placeholder={intl.get('digitalHuman.appAccountModal.searchPlaceholder')}
+            prefix={<SearchOutlined className="text-[14px] text-[--dip-text-color-45]" />}
             className="min-w-0 flex-1"
-            onChange={(e) => setKeyword(e.target.value)}
-            onSearch={(value) => fetchAccounts(value)}
+            style={{ height: 32, borderRadius: 6 }}
+            onChange={(e) => {
+              setKeyword(e.target.value)
+              if (!e.target.value) {
+                fetchAccounts('')
+              }
+            }}
+            onPressEnter={(e) => fetchAccounts(e.currentTarget.value)}
           />
-          <Button icon={<PlusOutlined />} onClick={onCreate}>
+          <Button style={{ width: 60, height: 32, borderRadius: 4, padding: 0 }} onClick={onCreate}>
             {intl.get('digitalHuman.appAccountModal.create')}
           </Button>
         </div>
         <ScrollBarContainer>
-          <div className="max-h-[260px] min-h-[156px] overflow-y-auto">{renderContent()}</div>
+          <div className="max-h-[208px] min-h-[156px] overflow-y-auto">{renderContent()}</div>
         </ScrollBarContainer>
       </div>
     </Modal>
