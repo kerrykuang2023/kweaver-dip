@@ -1,4 +1,3 @@
-import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { config as loadDotEnvConfig } from "dotenv";
@@ -456,12 +455,22 @@ export function readOptionalString(value: string | undefined): string | undefine
 }
 
 /**
- * Resolves the OpenClaw workspace root directory under the fixed OpenClaw home.
+ * Resolves the OpenClaw workspace root directory from the OpenClaw host path.
  *
+ * @param value The raw OPENCLAW_HOST_PATH environment variable value.
  * @returns The configured workspace root directory.
+ * @throws {Error} Thrown when OPENCLAW_HOST_PATH is empty.
  */
-export function resolveWorkspaceDir(): string {
-  return join(homedir(), ".openclaw", "workspace");
+export function resolveWorkspaceDir(
+  value: string | undefined = process.env.OPENCLAW_HOST_PATH
+): string {
+  const openClawHostPath = readOptionalString(value);
+
+  if (openClawHostPath === undefined) {
+    throw new Error("OPENCLAW_HOST_PATH is required");
+  }
+
+  return join(openClawHostPath, "workspace");
 }
 
 /**

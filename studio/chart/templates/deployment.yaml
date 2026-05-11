@@ -71,6 +71,11 @@ spec:
                 configMapKeyRef:
                   name: {{ .Chart.Name }}-config
                   key: USE_EXTERNAL_OPENCLAW
+            - name: OPENCLAW_HOST_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Chart.Name }}-config
+                  key: OPENCLAW_HOST_PATH
             - name: MCP_HOST
               valueFrom:
                 configMapKeyRef:

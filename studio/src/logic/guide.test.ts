@@ -292,24 +292,36 @@ describe("normalizeInitializeGuideRequest", () => {
   });
 
   it("derives default state and workspace directories", () => {
-    expect(
-      normalizeInitializeGuideRequest({
+    const previousOpenClawHostPath = process.env.OPENCLAW_HOST_PATH;
+
+    try {
+      process.env.OPENCLAW_HOST_PATH = "/data/.openclaw";
+
+      expect(
+        normalizeInitializeGuideRequest({
+          openclaw_address: "ws://127.0.0.1:19001",
+          openclaw_token: "token-1",
+          kweaver_base_url: "https://kweaver.example.com"
+        })
+      ).toEqual({
         openclaw_address: "ws://127.0.0.1:19001",
         openclaw_token: "token-1",
-        kweaver_base_url: "https://kweaver.example.com"
-      })
-    ).toEqual({
-      openclaw_address: "ws://127.0.0.1:19001",
-      openclaw_token: "token-1",
-      kweaver_base_url: "https://kweaver.example.com",
-      configPath: join(process.env.HOME ?? "", ".openclaw", "openclaw.json"),
-      protocol: "ws",
-      host: "127.0.0.1",
-      port: 19001,
-      token: "token-1",
-      stateDir: join(process.env.HOME ?? "", ".openclaw"),
-      workspaceDir: join(process.env.HOME ?? "", ".openclaw", "workspace")
-    });
+        kweaver_base_url: "https://kweaver.example.com",
+        configPath: join(process.env.HOME ?? "", ".openclaw", "openclaw.json"),
+        protocol: "ws",
+        host: "127.0.0.1",
+        port: 19001,
+        token: "token-1",
+        stateDir: join(process.env.HOME ?? "", ".openclaw"),
+        workspaceDir: join("/data/.openclaw", "workspace")
+      });
+    } finally {
+      if (previousOpenClawHostPath === undefined) {
+        delete process.env.OPENCLAW_HOST_PATH;
+      } else {
+        process.env.OPENCLAW_HOST_PATH = previousOpenClawHostPath;
+      }
+    }
   });
 
   it("builds the expected env entries", () => {
@@ -437,10 +449,12 @@ describe("DefaultGuideLogic", () => {
     const prevHost = process.env.OPENCLAW_GATEWAY_HOST;
     const prevPort = process.env.OPENCLAW_GATEWAY_PORT;
     const prevToken = process.env.OPENCLAW_GATEWAY_TOKEN;
+    const prevOpenClawHostPath = process.env.OPENCLAW_HOST_PATH;
     process.env.OPENCLAW_GATEWAY_PROTOCOL = "ws";
     process.env.OPENCLAW_GATEWAY_HOST = "127.0.0.1";
     process.env.OPENCLAW_GATEWAY_PORT = "19001";
     process.env.OPENCLAW_GATEWAY_TOKEN = "token-1";
+    process.env.OPENCLAW_HOST_PATH = join(fakeHomeForOsMock, ".openclaw");
     const logic = new DefaultGuideLogic({
       studioRootDir: process.cwd(),
       commandRunner: {
@@ -461,6 +475,11 @@ describe("DefaultGuideLogic", () => {
       process.env.OPENCLAW_GATEWAY_HOST = prevHost;
       process.env.OPENCLAW_GATEWAY_PORT = prevPort;
       process.env.OPENCLAW_GATEWAY_TOKEN = prevToken;
+      if (prevOpenClawHostPath === undefined) {
+        delete process.env.OPENCLAW_HOST_PATH;
+      } else {
+        process.env.OPENCLAW_HOST_PATH = prevOpenClawHostPath;
+      }
     }
   });
 
@@ -508,6 +527,8 @@ describe("DefaultGuideLogic", () => {
     };
     const studioConfigAdapter = createConfigAdapterDouble();
     const prevKweaverBaseUrl = process.env.KWEAVER_BASE_URL;
+    const prevOpenClawHostPath = process.env.OPENCLAW_HOST_PATH;
+    process.env.OPENCLAW_HOST_PATH = join(studioRootDir, ".openclaw");
     const logic = new DefaultGuideLogic({
       studioRootDir,
       commandRunner: {
@@ -559,6 +580,11 @@ describe("DefaultGuideLogic", () => {
       } else {
         process.env.KWEAVER_BASE_URL = prevKweaverBaseUrl;
       }
+      if (prevOpenClawHostPath === undefined) {
+        delete process.env.OPENCLAW_HOST_PATH;
+      } else {
+        process.env.OPENCLAW_HOST_PATH = prevOpenClawHostPath;
+      }
       fakeHomeForOsMock = process.env.HOME ?? "/tmp";
       await rm(studioRootDir, { recursive: true, force: true });
     }
@@ -577,7 +603,9 @@ describe("DefaultGuideLogic", () => {
     };
     const studioConfigAdapter = createConfigAdapterDouble();
     const prevUseExternalOpenClaw = process.env.USE_EXTERNAL_OPENCLAW;
+    const prevOpenClawHostPath = process.env.OPENCLAW_HOST_PATH;
     process.env.USE_EXTERNAL_OPENCLAW = "true";
+    process.env.OPENCLAW_HOST_PATH = join(studioRootDir, ".openclaw");
     const logic = new DefaultGuideLogic({
       studioRootDir,
       commandRunner: {
@@ -605,6 +633,11 @@ describe("DefaultGuideLogic", () => {
         delete process.env.USE_EXTERNAL_OPENCLAW;
       } else {
         process.env.USE_EXTERNAL_OPENCLAW = prevUseExternalOpenClaw;
+      }
+      if (prevOpenClawHostPath === undefined) {
+        delete process.env.OPENCLAW_HOST_PATH;
+      } else {
+        process.env.OPENCLAW_HOST_PATH = prevOpenClawHostPath;
       }
       fakeHomeForOsMock = process.env.HOME ?? "/tmp";
       await rm(studioRootDir, { recursive: true, force: true });
@@ -644,6 +677,8 @@ describe("DefaultGuideLogic", () => {
     };
     const studioConfigAdapter = createConfigAdapterDouble();
     const prevKweaverBaseUrl = process.env.KWEAVER_BASE_URL;
+    const prevOpenClawHostPath = process.env.OPENCLAW_HOST_PATH;
+    process.env.OPENCLAW_HOST_PATH = join(studioRootDir, ".openclaw");
     const logic = new DefaultGuideLogic({
       studioRootDir,
       commandRunner: {
@@ -672,6 +707,11 @@ describe("DefaultGuideLogic", () => {
       } else {
         process.env.KWEAVER_BASE_URL = prevKweaverBaseUrl;
       }
+      if (prevOpenClawHostPath === undefined) {
+        delete process.env.OPENCLAW_HOST_PATH;
+      } else {
+        process.env.OPENCLAW_HOST_PATH = prevOpenClawHostPath;
+      }
       fakeHomeForOsMock = process.env.HOME ?? "/tmp";
       await rm(studioRootDir, { recursive: true, force: true });
     }
@@ -698,19 +738,26 @@ describe("OpenClaw root env helpers", () => {
     });
   });
 
-  it("resolves local OpenClaw paths from the fixed OpenClaw home", () => {
+  it("resolves local OpenClaw paths from OPENCLAW_HOST_PATH", () => {
     expect(
       resolveOpenClawLocalPathsFromEnv(
         {
-          OPENCLAW_ROOT_DIR: "~/.openclaw-dev"
+          OPENCLAW_ROOT_DIR: "~/.openclaw-dev",
+          OPENCLAW_HOST_PATH: "/data/.openclaw"
         },
         "/tmp/studio"
       )
     ).toEqual({
-      configPath: join(fakeHomeForOsMock, ".openclaw", "openclaw.json"),
-      stateDir: join(fakeHomeForOsMock, ".openclaw"),
-      workspaceDir: join(fakeHomeForOsMock, ".openclaw", "workspace")
+      configPath: join("/data/.openclaw", "openclaw.json"),
+      stateDir: "/data/.openclaw",
+      workspaceDir: join("/data/.openclaw", "workspace")
     });
+  });
+
+  it("rejects local OpenClaw paths without OPENCLAW_HOST_PATH", () => {
+    expect(() => resolveOpenClawLocalPathsFromEnv({}, "/tmp/studio")).toThrow(
+      "OPENCLAW_HOST_PATH is required"
+    );
   });
 
   it("does not write OpenClaw root env values", async () => {

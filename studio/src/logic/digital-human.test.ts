@@ -998,7 +998,8 @@ describe("DefaultDigitalHumanLogic lifecycle (filesystem + adapter)", () => {
     });
 
     expect(createAgent).toHaveBeenCalledWith({
-      name: result.id
+      name: result.id,
+      workspace: join("/data/.openclaw", "workspace", result.id)
     });
     expect(listAgentFiles).toHaveBeenCalledWith({ agentId: result.id });
     expect(setAgentFile).toHaveBeenCalledWith(
@@ -1146,7 +1147,8 @@ describe("DefaultDigitalHumanLogic lifecycle (filesystem + adapter)", () => {
 
     expect(randomUuidSpy).not.toHaveBeenCalled();
     expect(createAgent).toHaveBeenCalledWith({
-      name: "__bkn_creator__"
+      name: "__bkn_creator__",
+      workspace: join("/data/.openclaw", "workspace", "__bkn_creator__")
     });
     expect(listAgentFiles).toHaveBeenCalledWith({ agentId: "__bkn_creator__" });
     expect(result.id).toBe("__bkn_creator__");

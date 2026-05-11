@@ -955,26 +955,30 @@ export function buildOpenClawRootEnvEntries(
 }
 
 /**
- * Resolves OpenClaw local filesystem paths using the fixed OpenClaw home directory.
+ * Resolves OpenClaw local filesystem paths using the configured OpenClaw host path.
  *
- * @param _envSource Environment variable source, ignored for backward compatibility.
+ * @param envSource Environment variable source containing OPENCLAW_HOST_PATH.
  * @param _studioRootDir Base directory used to resolve relative paths, ignored.
  * @returns The resolved config, state, and workspace paths.
  */
 export function resolveOpenClawLocalPathsFromEnv(
-  _envSource: NodeJS.ProcessEnv,
+  envSource: NodeJS.ProcessEnv,
   _studioRootDir: string
 ): {
   configPath: string;
   stateDir: string;
   workspaceDir: string;
 } {
-  const stateDir = join(homedir(), ".openclaw");
+  const stateDir = readOptionalString(envSource.OPENCLAW_HOST_PATH);
+
+  if (stateDir === undefined) {
+    throw new Error("OPENCLAW_HOST_PATH is required");
+  }
 
   return {
     configPath: join(stateDir, "openclaw.json"),
     stateDir,
-    workspaceDir: resolveWorkspaceDir()
+    workspaceDir: resolveWorkspaceDir(stateDir)
   };
 }
 
