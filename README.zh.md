@@ -38,6 +38,31 @@ KWeaver DIP 需配合 OpenClaw 使用。OpenClaw 支持两种安装方式：
  - `dip-studio.values.studio.openClawHostPath`: .openclaw/ 主目录主机路径
  - `dip-studio.values.studio.useExternalOpenClaw`: 是否使用自行部署的 OpenClaw
 
+7. 在 OpenClaw 主机安装 `mcporter`，并在 `~/.mcporter/mcporter.json` 注册 DIP Studio MCP 地址：
+
+```bash
+npm install -g mcporter
+mkdir -p ~/.mcporter
+vi ~/.mcporter/mcporter.json
+```
+
+使用以下最小配置。请将 `https://<节点IP>/studio/mcp` 替换为 OpenClaw 主机可访问的 DIP Studio MCP 地址。
+
+```json
+{
+  "mcpServers": {
+    "dip-studio": {
+      "description": "数字员工 MCP 服务",
+      "baseUrl": "https://<节点IP>/studio/mcp",
+      "headers": {
+        "Accept": "application/json, text/event-stream",
+        "Content-Type": "application/json"
+      }
+    }
+  }
+}
+```
+
 #### 方式二：基于 KWeaver DIP 的安装命令，快速安装内置 OpenClaw 版本
 
 1. 先执行下面的 KWeaver DIP 安装部署命令。

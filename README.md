@@ -39,6 +39,31 @@ KWeaver DIP must be used with OpenClaw. OpenClaw supports two installation appro
  - `dip-studio.values.studio.openClawHostPath`: host path of the `.openclaw/` root directory
  - `dip-studio.values.studio.useExternalOpenClaw`: whether to use a self-deployed OpenClaw instance
 
+7. Install `mcporter` on the OpenClaw host and register the DIP Studio MCP endpoint in `~/.mcporter/mcporter.json`:
+
+```bash
+npm install -g mcporter
+mkdir -p ~/.mcporter
+vi ~/.mcporter/mcporter.json
+```
+
+Use the following minimal configuration. Replace `https://<node-ip>/studio/mcp` with the DIP Studio MCP address reachable from the OpenClaw host.
+
+```json
+{
+  "mcpServers": {
+    "dip-studio": {
+      "description": "DIP Studio MCP service",
+      "baseUrl": "https://<node-ip>/studio/mcp",
+      "headers": {
+        "Accept": "application/json, text/event-stream",
+        "Content-Type": "application/json"
+      }
+    }
+  }
+}
+```
+
 #### Option 2: Use KWeaver DIP’s bundled OpenClaw
 
 1. Run the KWeaver DIP installation and deployment command below first.
