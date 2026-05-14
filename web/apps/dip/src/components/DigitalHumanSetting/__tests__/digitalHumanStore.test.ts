@@ -60,7 +60,7 @@ describe('DigitalHumanSetting/digitalHumanStore', () => {
     store.updateSkills([{ name: 's1' }, { name: 's2' }] as any)
     store.deleteBkn('u1')
     store.deleteSkill('s2')
-    store.updateAppAccount({ id: 'app-1', name: '应用账户A', credential_type: 'token' }, 'token-1')
+    store.updateAppAccount({ id: 'app-1', name: '应用账户A', credential_type: 'token' })
     store.updateChannel({ type: 'wechat' } as any)
     store.deleteChannel()
 
@@ -76,9 +76,17 @@ describe('DigitalHumanSetting/digitalHumanStore', () => {
       name: '应用账户A',
       credential_type: 'token',
     })
-    expect(state.kweaverToken).toBe('token-1')
+    expect(state.kweaverToken).toBeUndefined()
     expect(state.channel).toBeUndefined()
     expect(state.dirty).toBe(true)
+  })
+
+  it('updateAppAccount 传入 token 时会记录待持久化 token', () => {
+    const store = useDigitalHumanStore.getState()
+
+    store.updateAppAccount({ id: 'app-1', name: '应用账户A', credential_type: 'token' }, 'token-1')
+
+    expect(useDigitalHumanStore.getState().kweaverToken).toBe('token-1')
   })
 
   it('deleteAppAccount 会删除 token 并清空知识范围', () => {

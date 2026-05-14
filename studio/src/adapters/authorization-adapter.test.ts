@@ -29,7 +29,10 @@ describe("DefaultAuthorizationAdapter", () => {
     });
 
     await adapter.listAccessorPolicies({ accessor_id: "app-1" }, "token-1");
+    await adapter.listResourcePolicies({ resource_id: "kn-1", resource_type: "knowledge_network" }, "token-1");
     await adapter.createPolicies([{ id: "policy-1" }], "token-1");
+    await adapter.updatePolicies("policy-1,policy-2", [{ operation: { allow: [], deny: [] } }], "token-1");
+    await adapter.deletePolicies("policy-1,policy-2", "token-1");
 
     expect(createClient).toHaveBeenCalledWith({
       baseUrl: "http://kweaver",
@@ -46,10 +49,36 @@ describe("DefaultAuthorizationAdapter", () => {
     );
     expect(client.forwardRequest).toHaveBeenNthCalledWith(
       2,
+      "/api/authorization/v1/resource-policy",
+      {
+        method: "GET",
+        query: { resource_id: "kn-1", resource_type: "knowledge_network" },
+        bearerToken: "token-1"
+      }
+    );
+    expect(client.forwardRequest).toHaveBeenNthCalledWith(
+      3,
       "/api/authorization/v1/policy",
       {
         method: "POST",
         body: [{ id: "policy-1" }],
+        bearerToken: "token-1"
+      }
+    );
+    expect(client.forwardRequest).toHaveBeenNthCalledWith(
+      4,
+      "/api/authorization/v1/policy/policy-1%2Cpolicy-2",
+      {
+        method: "PUT",
+        body: [{ operation: { allow: [], deny: [] } }],
+        bearerToken: "token-1"
+      }
+    );
+    expect(client.forwardRequest).toHaveBeenNthCalledWith(
+      5,
+      "/api/authorization/v1/policy/policy-1%2Cpolicy-2",
+      {
+        method: "DELETE",
         bearerToken: "token-1"
       }
     );

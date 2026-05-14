@@ -24,12 +24,44 @@ export interface AuthorizationAdapter {
   ): Promise<IsfProxyResponse>;
 
   /**
+   * Lists policies for one resource instance.
+   *
+   * @param query Incoming query parameters.
+   * @param bearerToken Optional user bearer token.
+   */
+  listResourcePolicies(
+    query: IsfQuery,
+    bearerToken?: string
+  ): Promise<IsfProxyResponse>;
+
+  /**
    * Creates authorization policies.
    *
    * @param body Request body.
    * @param bearerToken Optional user bearer token.
    */
   createPolicies(body: unknown, bearerToken?: string): Promise<IsfProxyResponse>;
+
+  /**
+   * Updates authorization policies.
+   *
+   * @param ids Comma-separated policy ids.
+   * @param body Request body.
+   * @param bearerToken Optional user bearer token.
+   */
+  updatePolicies(
+    ids: string,
+    body: unknown,
+    bearerToken?: string
+  ): Promise<IsfProxyResponse>;
+
+  /**
+   * Deletes authorization policies.
+   *
+   * @param ids Comma-separated policy ids.
+   * @param bearerToken Optional user bearer token.
+   */
+  deletePolicies(ids: string, bearerToken?: string): Promise<IsfProxyResponse>;
 }
 
 /**
@@ -87,6 +119,27 @@ export class DefaultAuthorizationAdapter implements AuthorizationAdapter {
   }
 
   /**
+   * Lists policies for one resource instance.
+   *
+   * @param query Incoming query parameters.
+   * @param bearerToken Optional user bearer token.
+   * @returns The normalized upstream response.
+   */
+  public async listResourcePolicies(
+    query: IsfQuery,
+    bearerToken?: string
+  ): Promise<IsfProxyResponse> {
+    return this.createClient().forwardRequest(
+      "/api/authorization/v1/resource-policy",
+      {
+        method: "GET",
+        query,
+        bearerToken
+      }
+    );
+  }
+
+  /**
    * Creates authorization policies.
    *
    * @param body Request body.
@@ -102,6 +155,49 @@ export class DefaultAuthorizationAdapter implements AuthorizationAdapter {
       body,
       bearerToken
     });
+  }
+
+  /**
+   * Updates authorization policies.
+   *
+   * @param ids Comma-separated policy ids.
+   * @param body Request body.
+   * @param bearerToken Optional user bearer token.
+   * @returns The normalized upstream response.
+   */
+  public async updatePolicies(
+    ids: string,
+    body: unknown,
+    bearerToken?: string
+  ): Promise<IsfProxyResponse> {
+    return this.createClient().forwardRequest(
+      `/api/authorization/v1/policy/${encodeURIComponent(ids)}`,
+      {
+        method: "PUT",
+        body,
+        bearerToken
+      }
+    );
+  }
+
+  /**
+   * Deletes authorization policies.
+   *
+   * @param ids Comma-separated policy ids.
+   * @param bearerToken Optional user bearer token.
+   * @returns The normalized upstream response.
+   */
+  public async deletePolicies(
+    ids: string,
+    bearerToken?: string
+  ): Promise<IsfProxyResponse> {
+    return this.createClient().forwardRequest(
+      `/api/authorization/v1/policy/${encodeURIComponent(ids)}`,
+      {
+        method: "DELETE",
+        bearerToken
+      }
+    );
   }
 
   /**

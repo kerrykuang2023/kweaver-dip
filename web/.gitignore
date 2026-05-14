@@ -1,3 +1,6 @@
+.codex/
+.claude/
+
 node_modules
 .pnpm-store
 .turbo

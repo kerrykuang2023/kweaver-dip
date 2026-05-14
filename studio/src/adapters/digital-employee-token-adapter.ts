@@ -13,7 +13,23 @@ export interface DigitalEmployeeTokenAdapter {
   findAppId(agentId: string): Promise<string | undefined>;
 
   /**
-   * Finds the KWeaver token for one digital employee.
+   * Checks whether one application account already has a Studio-managed token record.
+   *
+   * @param appId Application account id.
+   * @returns `true` when a token record exists, otherwise `false`.
+   */
+  hasStudioAppToken(appId: string): Promise<boolean>;
+
+  /**
+   * Writes or replaces the KWeaver token for one application account.
+   *
+   * @param appId Application account id whose token should be persisted.
+   * @param token KWeaver token associated with the application account.
+   */
+  upsertStudioAppToken(appId: string, token: string): Promise<void>;
+
+  /**
+   * Finds the KWeaver token for the application account bound to one digital employee.
    *
    * @param agentId Digital employee id, equal to the OpenClaw agent id.
    * @returns The token when present, otherwise `undefined`.
@@ -29,11 +45,11 @@ export interface DigitalEmployeeTokenAdapter {
   findBknScope(agentId: string): Promise<string | undefined>;
 
   /**
-   * Writes or replaces the digital employee record.
+   * Writes or replaces the digital employee record and optional bound app-account token.
    *
    * @param agentId Digital employee id, equal to the OpenClaw agent id.
    * @param appId Application account id to store, or `null` when not configured.
-   * @param token KWeaver token to store, or `null` when not configured.
+   * @param token KWeaver token to store for the bound application account, or `null` when not configured.
    * @param bknScope Comma-separated BKN id list to store, or `null` when not configured.
    */
   upsertDigitalEmployee(
@@ -52,10 +68,10 @@ export interface DigitalEmployeeTokenAdapter {
   upsertAppId(agentId: string, appId: string | null): Promise<void>;
 
   /**
-   * Writes or replaces the KWeaver token for one digital employee.
+   * Writes or replaces the KWeaver token for the application account bound to one digital employee.
    *
    * @param agentId Digital employee id, equal to the OpenClaw agent id.
-   * @param token KWeaver token to store, or `null` when not configured.
+   * @param token KWeaver token to store for the bound application account, or `null` when not configured.
    */
   upsertKweaverToken(agentId: string, token: string | null): Promise<void>;
 
@@ -68,7 +84,7 @@ export interface DigitalEmployeeTokenAdapter {
   upsertBknScope(agentId: string, bknScope: string | null): Promise<void>;
 
   /**
-   * Removes the KWeaver token for one digital employee.
+   * Removes the app-account binding for one digital employee.
    *
    * @param agentId Digital employee id, equal to the OpenClaw agent id.
    */
@@ -82,16 +98,20 @@ export interface DigitalEmployeeTokenAdapter {
   markDigitalEmployeeDeleted(agentId: string): Promise<void>;
 }
 
-interface DigitalEmployeeTokenRow extends RowDataPacket {
-  kweaver_token: string | null;
-}
-
 interface DigitalEmployeeAppIdRow extends RowDataPacket {
   app_id: string | null;
 }
 
 interface DigitalEmployeeBknScopeRow extends RowDataPacket {
   bkn_scope: string | null;
+}
+
+interface StudioAccountTokenRow extends RowDataPacket {
+  kweaver_token: string | null;
+}
+
+interface StudioAccountTokenExistsRow extends RowDataPacket {
+  exists_flag: number;
 }
 
 /**
@@ -126,16 +146,40 @@ export class DefaultDigitalEmployeeTokenAdapter implements DigitalEmployeeTokenA
   }
 
   /**
-   * Finds the KWeaver token for one digital employee.
+   * Checks whether one application account already has a Studio-managed token record.
+   *
+   * @param appId Application account id.
+   * @returns `true` when a token record exists, otherwise `false`.
+   */
+  public async hasStudioAppToken(appId: string): Promise<boolean> {
+    const [rows] = await this.pool.execute<StudioAccountTokenExistsRow[]>(
+      [
+        "SELECT 1 AS exists_flag FROM t_studio_account_token",
+        "WHERE f_id = :appId AND f_type = 'app'",
+        "LIMIT 1"
+      ].join(" "),
+      { appId }
+    );
+
+    return rows.length > 0;
+  }
+
+  /**
+   * Finds the KWeaver token for the application account bound to one digital employee.
    *
    * @param agentId Digital employee id, equal to the OpenClaw agent id.
    * @returns The token when present, otherwise `undefined`.
    */
   public async findKweaverToken(agentId: string): Promise<string | undefined> {
-    const [rows] = await this.pool.execute<DigitalEmployeeTokenRow[]>(
+    const [rows] = await this.pool.execute<StudioAccountTokenRow[]>(
       [
-        "SELECT kweaver_token FROM t_digital_employee",
-        "WHERE id = :agentId AND is_deleted = FALSE",
+        "SELECT account_token.f_token AS kweaver_token",
+        "FROM t_digital_employee digital_employee",
+        "LEFT JOIN t_studio_account_token account_token",
+        "ON digital_employee.app_id = account_token.f_id",
+        "AND account_token.f_type = 'app'",
+        "WHERE digital_employee.id = :agentId",
+        "AND digital_employee.is_deleted = FALSE",
         "LIMIT 1"
       ].join(" "),
       { agentId }
@@ -166,11 +210,11 @@ export class DefaultDigitalEmployeeTokenAdapter implements DigitalEmployeeTokenA
   }
 
   /**
-   * Writes or replaces the digital employee record.
+   * Writes or replaces the digital employee record and optional bound app-account token.
    *
    * @param agentId Digital employee id, equal to the OpenClaw agent id.
    * @param appId Application account id to store, or `null` when not configured.
-   * @param token KWeaver token to store, or `null` when not configured.
+   * @param token KWeaver token to store for the bound application account, or `null` when not configured.
    * @param bknScope Comma-separated BKN id list to store, or `null` when not configured.
    */
   public async upsertDigitalEmployee(
@@ -181,16 +225,19 @@ export class DefaultDigitalEmployeeTokenAdapter implements DigitalEmployeeTokenA
   ): Promise<void> {
     await this.pool.execute(
       [
-        "INSERT INTO t_digital_employee (id, app_id, kweaver_token, bkn_scope, is_deleted)",
-        "VALUES (:agentId, :appId, :token, :bknScope, FALSE)",
+        "INSERT INTO t_digital_employee (id, app_id, bkn_scope, is_deleted)",
+        "VALUES (:agentId, :appId, :bknScope, FALSE)",
         "ON DUPLICATE KEY UPDATE",
         "app_id = VALUES(app_id),",
-        "kweaver_token = VALUES(kweaver_token),",
         "bkn_scope = VALUES(bkn_scope),",
         "is_deleted = FALSE"
       ].join(" "),
-      { agentId, appId, token, bknScope }
+      { agentId, appId, bknScope }
     );
+
+    if (appId !== null && token !== null) {
+      await this.upsertStudioAppToken(appId, token);
+    }
   }
 
   /**
@@ -216,25 +263,26 @@ export class DefaultDigitalEmployeeTokenAdapter implements DigitalEmployeeTokenA
   }
 
   /**
-   * Writes or replaces the KWeaver token for one digital employee.
+   * Writes or replaces the KWeaver token for the application account bound to one digital employee.
    *
    * @param agentId Digital employee id, equal to the OpenClaw agent id.
-   * @param token KWeaver token to store, or `null` when not configured.
+   * @param token KWeaver token to store for the bound application account, or `null` when not configured.
    */
   public async upsertKweaverToken(
     agentId: string,
     token: string | null
   ): Promise<void> {
-    await this.pool.execute(
-      [
-        "INSERT INTO t_digital_employee (id, kweaver_token, is_deleted)",
-        "VALUES (:agentId, :token, FALSE)",
-        "ON DUPLICATE KEY UPDATE",
-        "kweaver_token = VALUES(kweaver_token),",
-        "is_deleted = FALSE"
-      ].join(" "),
-      { agentId, token }
-    );
+    if (token === null) {
+      return;
+    }
+
+    const appId = await this.findAppId(agentId);
+
+    if (appId === undefined) {
+      return;
+    }
+
+    await this.upsertStudioAppToken(appId, token);
   }
 
   /**
@@ -260,7 +308,7 @@ export class DefaultDigitalEmployeeTokenAdapter implements DigitalEmployeeTokenA
   }
 
   /**
-   * Removes the KWeaver token for one digital employee.
+   * Removes the app-account binding for one digital employee.
    *
    * @param agentId Digital employee id, equal to the OpenClaw agent id.
    */
@@ -268,7 +316,7 @@ export class DefaultDigitalEmployeeTokenAdapter implements DigitalEmployeeTokenA
     await this.pool.execute(
       [
         "UPDATE t_digital_employee",
-        "SET app_id = NULL, kweaver_token = NULL, bkn_scope = NULL",
+        "SET app_id = NULL, bkn_scope = NULL",
         "WHERE id = :agentId"
       ].join(" "),
       { agentId }
@@ -284,6 +332,27 @@ export class DefaultDigitalEmployeeTokenAdapter implements DigitalEmployeeTokenA
     await this.pool.execute(
       "UPDATE t_digital_employee SET is_deleted = TRUE WHERE id = :agentId",
       { agentId }
+    );
+  }
+
+  /**
+   * Writes or replaces the KWeaver token for one application account.
+   *
+   * @param appId Application account id whose token should be persisted.
+   * @param token KWeaver token associated with the application account.
+   */
+  public async upsertStudioAppToken(
+    appId: string,
+    token: string
+  ): Promise<void> {
+    await this.pool.execute(
+      [
+        "INSERT INTO t_studio_account_token (f_id, f_type, f_token)",
+        "VALUES (:appId, 'app', :token)",
+        "ON DUPLICATE KEY UPDATE",
+        "f_token = VALUES(f_token)"
+      ].join(" "),
+      { appId, token }
     );
   }
 }

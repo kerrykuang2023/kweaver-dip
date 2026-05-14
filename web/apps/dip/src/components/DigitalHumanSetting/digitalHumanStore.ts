@@ -99,7 +99,7 @@ export interface DigitalHumanState {
   /** 删除单个知识源（按 id） */
   deleteBkn: (id: string) => void
   /** 更新应用账户与运行时 Token */
-  updateAppAccount: (account: AppAccount, token: string) => void
+  updateAppAccount: (account: AppAccount, token?: string | null) => void
   /** 清除应用账户与 Token，同时清空知识范围 */
   deleteAppAccount: () => void
   /** 更新技能目录名列表（整组替换） */
@@ -244,7 +244,7 @@ export const useDigitalHumanStore = create<DigitalHumanState>()((set) => ({
   updateAppAccount: (account, token) =>
     set({
       appAccount: account,
-      kweaverToken: token,
+      kweaverToken: token ?? undefined,
       dirty: true,
     }),
 

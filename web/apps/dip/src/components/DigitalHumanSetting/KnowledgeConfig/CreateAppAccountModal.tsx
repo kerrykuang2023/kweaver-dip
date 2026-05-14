@@ -2,11 +2,10 @@ import type { ModalProps } from 'antd'
 import { Form, Input, Modal, message } from 'antd'
 import intl from 'react-intl-universal'
 import type { AppAccount } from '@/apis'
-import { createAppAccount, createAppToken } from '@/apis'
+import { createAppAccount } from '@/apis'
 
 export interface CreateAppAccountResult {
   account: AppAccount
-  token: string
 }
 
 export interface CreateAppAccountModalProps extends Omit<ModalProps, 'onCancel' | 'onOk'> {
@@ -23,14 +22,13 @@ const CreateAppAccountModal = ({ open, onOk, onCancel }: CreateAppAccountModalPr
     try {
       const name = values.name.trim()
       const account = await createAppAccount({ name, password: '' })
-      const token = await createAppToken({ id: account.id })
       onOk({
         account: {
           id: account.id,
           name,
           credential_type: 'token',
+          has_kweaver_token: true,
         },
-        token: token.token,
       })
       form.resetFields()
     } catch (err: any) {

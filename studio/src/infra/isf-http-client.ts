@@ -12,7 +12,7 @@ export type IsfQuery = Record<string, string | string[] | number | boolean | und
 /**
  * HTTP methods currently needed by ISF proxy adapters.
  */
-export type IsfHttpMethod = "GET" | "POST";
+export type IsfHttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 /**
  * Static configuration for the ISF HTTP client.

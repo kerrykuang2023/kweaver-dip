@@ -34,6 +34,33 @@ describe("DefaultDigitalEmployeeTokenAdapter", () => {
     );
   });
 
+  it("checks whether the app account already has a Studio token record", async () => {
+    const pool = createPoolDouble();
+    vi.mocked(pool.execute).mockResolvedValue([
+      [{ exists_flag: 1 }],
+      []
+    ] as never);
+    const adapter = new DefaultDigitalEmployeeTokenAdapter(pool);
+
+    await expect(adapter.hasStudioAppToken("app-1")).resolves.toBe(true);
+    expect(pool.execute).toHaveBeenCalledWith(
+      [
+        "SELECT 1 AS exists_flag FROM t_studio_account_token",
+        "WHERE f_id = :appId AND f_type = 'app'",
+        "LIMIT 1"
+      ].join(" "),
+      { appId: "app-1" }
+    );
+  });
+
+  it("returns false when the app account has no Studio token record", async () => {
+    const pool = createPoolDouble();
+    vi.mocked(pool.execute).mockResolvedValue([[], []] as never);
+    const adapter = new DefaultDigitalEmployeeTokenAdapter(pool);
+
+    await expect(adapter.hasStudioAppToken("app-1")).resolves.toBe(false);
+  });
+
   it("reads the token by agent id", async () => {
     const pool = createPoolDouble();
     vi.mocked(pool.execute).mockResolvedValue([
@@ -45,8 +72,13 @@ describe("DefaultDigitalEmployeeTokenAdapter", () => {
     await expect(adapter.findKweaverToken("agent-1")).resolves.toBe("token-1");
     expect(pool.execute).toHaveBeenCalledWith(
       [
-        "SELECT kweaver_token FROM t_digital_employee",
-        "WHERE id = :agentId AND is_deleted = FALSE",
+        "SELECT account_token.f_token AS kweaver_token",
+        "FROM t_digital_employee digital_employee",
+        "LEFT JOIN t_studio_account_token account_token",
+        "ON digital_employee.app_id = account_token.f_id",
+        "AND account_token.f_type = 'app'",
+        "WHERE digital_employee.id = :agentId",
+        "AND digital_employee.is_deleted = FALSE",
         "LIMIT 1"
       ].join(" "),
       { agentId: "agent-1" }
@@ -98,17 +130,45 @@ describe("DefaultDigitalEmployeeTokenAdapter", () => {
 
     await adapter.upsertDigitalEmployee("agent-1", "app-1", "token-1", "kn-1,kn-2");
 
-    expect(pool.execute).toHaveBeenCalledWith(
+    expect(pool.execute).toHaveBeenNthCalledWith(
+      1,
       [
-        "INSERT INTO t_digital_employee (id, app_id, kweaver_token, bkn_scope, is_deleted)",
-        "VALUES (:agentId, :appId, :token, :bknScope, FALSE)",
+        "INSERT INTO t_digital_employee (id, app_id, bkn_scope, is_deleted)",
+        "VALUES (:agentId, :appId, :bknScope, FALSE)",
         "ON DUPLICATE KEY UPDATE",
         "app_id = VALUES(app_id),",
-        "kweaver_token = VALUES(kweaver_token),",
         "bkn_scope = VALUES(bkn_scope),",
         "is_deleted = FALSE"
       ].join(" "),
-      { agentId: "agent-1", appId: "app-1", token: "token-1", bknScope: "kn-1,kn-2" }
+      { agentId: "agent-1", appId: "app-1", bknScope: "kn-1,kn-2" }
+    );
+    expect(pool.execute).toHaveBeenNthCalledWith(
+      2,
+      [
+        "INSERT INTO t_studio_account_token (f_id, f_type, f_token)",
+        "VALUES (:appId, 'app', :token)",
+        "ON DUPLICATE KEY UPDATE",
+        "f_token = VALUES(f_token)"
+      ].join(" "),
+      { appId: "app-1", token: "token-1" }
+    );
+  });
+
+  it("upserts the Studio app token directly by app id", async () => {
+    const pool = createPoolDouble();
+    vi.mocked(pool.execute).mockResolvedValue([[], []] as never);
+    const adapter = new DefaultDigitalEmployeeTokenAdapter(pool);
+
+    await adapter.upsertStudioAppToken("app-1", "token-1");
+
+    expect(pool.execute).toHaveBeenCalledWith(
+      [
+        "INSERT INTO t_studio_account_token (f_id, f_type, f_token)",
+        "VALUES (:appId, 'app', :token)",
+        "ON DUPLICATE KEY UPDATE",
+        "f_token = VALUES(f_token)"
+      ].join(" "),
+      { appId: "app-1", token: "token-1" }
     );
   });
 
@@ -131,42 +191,64 @@ describe("DefaultDigitalEmployeeTokenAdapter", () => {
     );
   });
 
-  it("upserts the token by agent id", async () => {
+  it("upserts the token by the bound application account id", async () => {
     const pool = createPoolDouble();
-    vi.mocked(pool.execute).mockResolvedValue([[], []] as never);
+    vi.mocked(pool.execute)
+      .mockResolvedValueOnce([
+        [{ app_id: "app-1" }],
+        []
+      ] as never)
+      .mockResolvedValueOnce([[], []] as never);
+    const adapter = new DefaultDigitalEmployeeTokenAdapter(pool);
+
+    await adapter.upsertKweaverToken("agent-1", "token-1");
+
+    expect(pool.execute).toHaveBeenNthCalledWith(
+      1,
+      [
+        "SELECT app_id FROM t_digital_employee",
+        "WHERE id = :agentId AND is_deleted = FALSE",
+        "LIMIT 1"
+      ].join(" "),
+      { agentId: "agent-1" }
+    );
+    expect(pool.execute).toHaveBeenNthCalledWith(
+      2,
+      [
+        "INSERT INTO t_studio_account_token (f_id, f_type, f_token)",
+        "VALUES (:appId, 'app', :token)",
+        "ON DUPLICATE KEY UPDATE",
+        "f_token = VALUES(f_token)"
+      ].join(" "),
+      { appId: "app-1", token: "token-1" }
+    );
+  });
+
+  it("does not upsert a token when the digital employee has no bound application account", async () => {
+    const pool = createPoolDouble();
+    vi.mocked(pool.execute).mockResolvedValueOnce([[], []] as never);
     const adapter = new DefaultDigitalEmployeeTokenAdapter(pool);
 
     await adapter.upsertKweaverToken("agent-1", "token-1");
 
     expect(pool.execute).toHaveBeenCalledWith(
       [
-        "INSERT INTO t_digital_employee (id, kweaver_token, is_deleted)",
-        "VALUES (:agentId, :token, FALSE)",
-        "ON DUPLICATE KEY UPDATE",
-        "kweaver_token = VALUES(kweaver_token),",
-        "is_deleted = FALSE"
+        "SELECT app_id FROM t_digital_employee",
+        "WHERE id = :agentId AND is_deleted = FALSE",
+        "LIMIT 1"
       ].join(" "),
-      { agentId: "agent-1", token: "token-1" }
+      { agentId: "agent-1" }
     );
+    expect(pool.execute).toHaveBeenCalledTimes(1);
   });
 
-  it("upserts a digital employee row without a configured token", async () => {
+  it("returns early when token upsert receives null", async () => {
     const pool = createPoolDouble();
-    vi.mocked(pool.execute).mockResolvedValue([[], []] as never);
     const adapter = new DefaultDigitalEmployeeTokenAdapter(pool);
 
     await adapter.upsertKweaverToken("agent-1", null);
 
-    expect(pool.execute).toHaveBeenCalledWith(
-      [
-        "INSERT INTO t_digital_employee (id, kweaver_token, is_deleted)",
-        "VALUES (:agentId, :token, FALSE)",
-        "ON DUPLICATE KEY UPDATE",
-        "kweaver_token = VALUES(kweaver_token),",
-        "is_deleted = FALSE"
-      ].join(" "),
-      { agentId: "agent-1", token: null }
-    );
+    expect(pool.execute).not.toHaveBeenCalled();
   });
 
   it("upserts the BKN scope by agent id", async () => {
@@ -198,7 +280,7 @@ describe("DefaultDigitalEmployeeTokenAdapter", () => {
     expect(pool.execute).toHaveBeenCalledWith(
       [
         "UPDATE t_digital_employee",
-        "SET app_id = NULL, kweaver_token = NULL, bkn_scope = NULL",
+        "SET app_id = NULL, bkn_scope = NULL",
         "WHERE id = :agentId"
       ].join(" "),
       { agentId: "agent-1" }

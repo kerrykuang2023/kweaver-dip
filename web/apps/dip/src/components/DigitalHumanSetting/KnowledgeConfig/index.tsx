@@ -5,7 +5,6 @@ import intl from 'react-intl-universal'
 import {
   type AppAccount,
   type BknKnowledgeNetworkInfo,
-  createAppToken,
   getAccessorPolicies,
 } from '@/apis'
 import type { BknEntry } from '@/apis/dip-studio/digital-human'
@@ -16,8 +15,9 @@ import ScrollBarContainer from '@/components/ScrollBarContainer'
 import { useLanguageStore } from '@/stores/languageStore'
 import { useDigitalHumanStore } from '../digitalHumanStore'
 import ConfigureAppPolicyModal, {
+  AUTHORIZATION_ACCESSOR_POLICY_PAGE_LIMIT,
   BKN_POLICY_RESOURCE_TYPE,
-  BKN_QUERY_OPERATION_ID,
+  BKN_REQUIRED_OPERATION_IDS,
 } from './ConfigureAppPolicyModal'
 import CreateAppAccountModal, { type CreateAppAccountResult } from './CreateAppAccountModal'
 import styles from './index.module.less'
@@ -60,14 +60,24 @@ const KnowledgeConfig = ({ readonly }: KnowledgeConfigProps) => {
       accessor_id: account.id,
       accessor_type: 'app',
       resource_type: BKN_POLICY_RESOURCE_TYPE,
-      limit: -1,
+      limit: AUTHORIZATION_ACCESSOR_POLICY_PAGE_LIMIT,
+    })
+    const allowedOperationIdsByResourceId = new Map<string, Set<string>>()
+    result.entries.forEach((policy) => {
+      const resourceId = policy.resource.id
+      const allowedOperationIds =
+        allowedOperationIdsByResourceId.get(resourceId) ?? new Set<string>()
+      policy.operation.allow.forEach((operation) => {
+        allowedOperationIds.add(operation.id)
+      })
+      allowedOperationIdsByResourceId.set(resourceId, allowedOperationIds)
     })
     const authorizedIds = new Set(
-      result.entries
-        .filter((policy) =>
-          policy.operation.allow.some((operation) => operation.id === BKN_QUERY_OPERATION_ID),
+      Array.from(allowedOperationIdsByResourceId.entries())
+        .filter(([, operationIds]) =>
+          BKN_REQUIRED_OPERATION_IDS.every((operationId) => operationIds.has(operationId)),
         )
-        .map((policy) => policy.resource.id),
+        .map(([resourceId]) => resourceId),
     )
     const unauthorizedBkn = nextBkn.filter((item) => !authorizedIds.has(item.id))
     if (unauthorizedBkn.length === 0) {
@@ -81,22 +91,30 @@ const KnowledgeConfig = ({ readonly }: KnowledgeConfigProps) => {
   }
 
   const handleSelectAppAccountResult = async (account: AppAccount) => {
+    const hasSwitchedAppAccount = account.id !== appAccount?.id
+
+    if (hasSwitchedAppAccount || !appAccount) {
+      updateAppAccount(account)
+    }
+
+    setSelectAppAccountModalOpen(false)
+    if (!hasSwitchedAppAccount && appAccount) {
+      return
+    }
+
     try {
-      const token = await createAppToken({ id: account.id })
-      updateAppAccount(account, token.token)
-      setSelectAppAccountModalOpen(false)
       if (bkn.length > 0) {
         await openPolicyModalIfNeeded(account, bkn)
         return
       }
       setSelectKnowledgeModalOpen(true)
     } catch (err: any) {
-      messageApi.error(err?.description || intl.get('digitalHuman.appAccountModal.tokenFailed'))
+      messageApi.error(err?.description || intl.get('digitalHuman.appPolicyModal.loadFailed'))
     }
   }
 
   const handleCreateAppAccountResult = (result: CreateAppAccountResult) => {
-    updateAppAccount(result.account, result.token)
+    updateAppAccount(result.account)
     setCreateAppAccountModalOpen(false)
     setSelectAppAccountModalOpen(false)
     setSelectKnowledgeModalOpen(true)

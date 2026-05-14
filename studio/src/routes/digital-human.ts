@@ -1,6 +1,7 @@
 import { Router, type NextFunction, type Request, type Response } from "express";
 
 import { DefaultDigitalEmployeeTokenAdapter } from "../adapters/digital-employee-token-adapter";
+import { DefaultAuthorizationAdapter } from "../adapters/authorization-adapter";
 import {
   OpenClawAgentsGatewayAdapter,
 } from "../adapters/openclaw-agents-adapter";
@@ -72,7 +73,8 @@ export const digitalHumanLogic = new DefaultDigitalHumanLogic({
   openClawCronAdapter,
   agentSkillsLogic,
   digitalEmployeeTokenAdapter,
-  userManagementAdapter: new DefaultUserManagementAdapter()
+  userManagementAdapter: new DefaultUserManagementAdapter(),
+  authorizationAdapter: new DefaultAuthorizationAdapter()
 });
 const builtInDigitalHumanLogic = new DefaultBuiltInDigitalHumanLogic();
 
@@ -423,7 +425,10 @@ export function createDigitalHumanRouter(): Router {
     ): Promise<void> => {
       try {
         const createRequest = parseCreateRequest(request.body);
-        const result = await digitalHumanLogic.createDigitalHuman(createRequest);
+        const result = await digitalHumanLogic.createDigitalHuman(
+          createRequest,
+          request.headers === undefined ? undefined : readOptionalBearerToken(request)
+        );
 
         response.status(201).json(result);
       } catch (error) {

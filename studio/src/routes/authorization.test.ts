@@ -67,7 +67,10 @@ function findHandler(
 function createAdapterDouble(): AuthorizationAdapter {
   return {
     listAccessorPolicies: vi.fn(),
-    createPolicies: vi.fn()
+    listResourcePolicies: vi.fn(),
+    createPolicies: vi.fn(),
+    updatePolicies: vi.fn(),
+    deletePolicies: vi.fn()
   };
 }
 

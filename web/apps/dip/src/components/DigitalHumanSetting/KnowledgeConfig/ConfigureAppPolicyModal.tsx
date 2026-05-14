@@ -1,13 +1,12 @@
 import type { ModalProps } from 'antd'
-import { Button, Checkbox, Modal, message } from 'antd'
+import { Button, Checkbox, Modal } from 'antd'
 import { useEffect, useState } from 'react'
 import intl from 'react-intl-universal'
-import { createAuthorizationPolicies } from '@/apis'
 import type { BknEntry } from '@/apis/dip-studio/digital-human'
 
 export const BKN_POLICY_RESOURCE_TYPE = 'knowledge_network'
-export const BKN_QUERY_OPERATION_ID = 'data_query'
-export const PERMANENT_EXPIRES_AT = '1970-01-01T08:00:00+08:00'
+export const BKN_REQUIRED_OPERATION_IDS = ['data_query', 'view_detail'] as const
+export const AUTHORIZATION_ACCESSOR_POLICY_PAGE_LIMIT = 1000
 
 export interface ConfigureAppPolicyModalProps extends Omit<ModalProps, 'onCancel' | 'onOk'> {
   appAccountId?: string
@@ -24,8 +23,6 @@ const ConfigureAppPolicyModal = ({
   onCancel,
 }: ConfigureAppPolicyModalProps) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [submitting, setSubmitting] = useState(false)
-  const [messageApi, contextHolder] = message.useMessage()
 
   useEffect(() => {
     if (open) {
@@ -33,40 +30,8 @@ const ConfigureAppPolicyModal = ({
     }
   }, [networks, open])
 
-  const handleOk = async () => {
-    if (!appAccountId || selectedIds.length === 0) {
-      onOk()
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      await createAuthorizationPolicies(
-        networks
-          .filter((network) => selectedIds.includes(network.id))
-          .map((network) => ({
-            accessor: {
-              id: appAccountId,
-              type: 'app',
-            },
-            resource: {
-              id: network.id,
-              type: BKN_POLICY_RESOURCE_TYPE,
-              name: network.name,
-            },
-            operation: {
-              allow: [{ id: BKN_QUERY_OPERATION_ID }],
-              deny: [],
-            },
-            expires_at: PERMANENT_EXPIRES_AT,
-          })),
-      )
-      onOk()
-    } catch (err: any) {
-      messageApi.error(err?.description || intl.get('digitalHuman.appPolicyModal.saveFailed'))
-    } finally {
-      setSubmitting(false)
-    }
+  const handleOk = () => {
+    onOk()
   }
 
   return (
@@ -75,7 +40,6 @@ const ConfigureAppPolicyModal = ({
       open={open}
       onOk={handleOk}
       onCancel={onCancel}
-      confirmLoading={submitting}
       centered
       destroyOnHidden
       mask={{ closable: false }}
@@ -119,7 +83,6 @@ const ConfigureAppPolicyModal = ({
         },
       }}
     >
-      {contextHolder}
       <div className="mb-[13px] text-sm font-normal leading-[22px] text-[--dip-text-color-85]">
         {intl.get('digitalHuman.appPolicyModal.desc')}
       </div>

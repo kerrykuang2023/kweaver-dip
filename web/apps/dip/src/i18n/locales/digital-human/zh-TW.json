@@ -148,6 +148,7 @@
       "unboundKnowledgeWarning": "目前已設定的業務知識網路暫不可用，數位員工需綁定應用帳戶後，才能存取這些業務知識網路。",
       "bindNow": "去綁定",
       "switch": "切換應用帳戶",
+      "switchWarning": "切換應用帳戶後，該應用帳戶已建立的 Token 會失效，請在確認發布數位員工後再執行切換。",
       "delete": "刪除",
       "deleteTitle": "確定刪除應用帳戶",
       "deleteContent": "刪除後，數位員工將無法存取已關聯的業務知識網路，確定要刪除嗎？",

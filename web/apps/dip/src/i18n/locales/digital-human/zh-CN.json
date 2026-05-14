@@ -148,6 +148,7 @@
       "unboundKnowledgeWarning": "当前已配置的业务知识网络暂不可用，数字员工需绑定应用账户后，才能访问这些业务知识网络。",
       "bindNow": "去绑定",
       "switch": "切换应用账户",
+      "switchWarning": "切换应用账户后，该应用账户已创建的 Token 会失效，请在确认发布数字员工后再执行切换。",
       "delete": "删除",
       "deleteTitle": "确定删除应用账户",
       "deleteContent": "删除后，数字员工将无法访问已关联的业务知识网络，确定要删除吗？",

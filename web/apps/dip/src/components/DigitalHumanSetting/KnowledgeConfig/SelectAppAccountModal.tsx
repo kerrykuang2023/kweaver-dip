@@ -66,6 +66,12 @@ const SelectAppAccountModal = ({
   }
 
   const hasSelectedAccount = accounts.some((item) => item.id === selectedId)
+  const selectedAccount = accounts.find((item) => item.id === selectedId)
+  const shouldShowSwitchWarning =
+    defaultSelectedId &&
+    selectedId &&
+    selectedId !== defaultSelectedId &&
+    selectedAccount?.has_kweaver_token === false
 
   const renderContent = () => {
     if (status === LoadStatus.Loading) {
@@ -173,6 +179,11 @@ const SelectAppAccountModal = ({
         <div className="mb-4 text-sm font-normal leading-[22px] text-[--dip-text-color]">
           {intl.get('digitalHuman.appAccountModal.subtitle')}
         </div>
+        {shouldShowSwitchWarning && (
+          <div className="mb-4 rounded-lg border border-[#ffe58f] bg-[#fffbe6] px-3 py-2 text-sm leading-[22px] text-[--dip-text-color]">
+            {intl.get('digitalHuman.appAccountModal.switchWarning')}
+          </div>
+        )}
         <div className="mb-4 flex items-center gap-2">
           <Input
             allowClear

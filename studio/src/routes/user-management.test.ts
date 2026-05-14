@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response, Router } from "express";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { UserManagementAdapter } from "../adapters/user-management-adapter";
+import type { DigitalEmployeeTokenAdapter } from "../adapters/digital-employee-token-adapter";
 import { HttpError } from "../errors/http-error";
 import { readOptionalBearerToken } from "./proxy-auth";
 import { createUserManagementRouter } from "./user-management";
@@ -75,12 +76,31 @@ function createAdapterDouble(): UserManagementAdapter {
   };
 }
 
+function createTokenAdapterDouble(): DigitalEmployeeTokenAdapter {
+  return {
+    findAppId: vi.fn(),
+    hasStudioAppToken: vi.fn().mockResolvedValue(false),
+    findKweaverToken: vi.fn(),
+    findBknScope: vi.fn(),
+    upsertStudioAppToken: vi.fn(),
+    upsertDigitalEmployee: vi.fn(),
+    upsertAppId: vi.fn(),
+    upsertKweaverToken: vi.fn(),
+    upsertBknScope: vi.fn(),
+    deleteKweaverToken: vi.fn(),
+    markDigitalEmployeeDeleted: vi.fn()
+  };
+}
+
 describe("createUserManagementRouter", () => {
   const appsPath = "/api/dip-studio/v1/user-management/apps";
   const tokensPath = "/api/dip-studio/v1/user-management/console/app-tokens";
 
   it("registers all user-management routes", () => {
-    const router = createUserManagementRouter(createAdapterDouble()) as Router;
+    const router = createUserManagementRouter(
+      createAdapterDouble(),
+      createTokenAdapterDouble()
+    ) as Router;
 
     expect(findHandler(router, "get", appsPath)).toBeDefined();
     expect(findHandler(router, "post", appsPath)).toBeDefined();
@@ -89,12 +109,26 @@ describe("createUserManagementRouter", () => {
 
   it("forwards list requests with bearer token", async () => {
     const adapter = createAdapterDouble();
+    const tokenAdapter = createTokenAdapterDouble();
+    vi.mocked(tokenAdapter.hasStudioAppToken)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
     vi.mocked(adapter.listApps).mockResolvedValue({
       status: 200,
       headers: new Headers({ "content-type": "application/json" }),
-      body: "{\"entries\":[]}"
+      body: JSON.stringify({
+        entries: [
+          { id: "app-1", name: "App 1" },
+          { id: "app-2", name: "App 2" }
+        ],
+        total_count: 2
+      })
     });
-    const handler = findHandler(createUserManagementRouter(adapter) as Router, "get", appsPath);
+    const handler = findHandler(
+      createUserManagementRouter(adapter, tokenAdapter) as Router,
+      "get",
+      appsPath
+    );
     const response = createResponseDouble();
     const next = vi.fn<NextFunction>();
 
@@ -112,7 +146,15 @@ describe("createUserManagementRouter", () => {
       "token-1"
     );
     expect(response.status).toHaveBeenCalledWith(200);
-    expect(response.send).toHaveBeenCalledWith("{\"entries\":[]}");
+    expect(tokenAdapter.hasStudioAppToken).toHaveBeenNthCalledWith(1, "app-1");
+    expect(tokenAdapter.hasStudioAppToken).toHaveBeenNthCalledWith(2, "app-2");
+    expect(response.send).toHaveBeenCalledWith(JSON.stringify({
+      entries: [
+        { id: "app-1", name: "App 1", has_kweaver_token: true },
+        { id: "app-2", name: "App 2", has_kweaver_token: false }
+      ],
+      total_count: 2
+    }));
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -123,7 +165,11 @@ describe("createUserManagementRouter", () => {
       headers: new Headers(),
       body: "{\"token\":\"t\"}"
     });
-    const handler = findHandler(createUserManagementRouter(adapter) as Router, "post", tokensPath);
+    const handler = findHandler(
+      createUserManagementRouter(adapter, createTokenAdapterDouble()) as Router,
+      "post",
+      tokensPath
+    );
     const response = createResponseDouble();
     const next = vi.fn<NextFunction>();
 
@@ -141,6 +187,52 @@ describe("createUserManagementRouter", () => {
       "token-1"
     );
     expect(response.send).toHaveBeenCalledWith("{\"token\":\"t\"}");
+  });
+
+  it("creates and stores an app token after creating an app account", async () => {
+    const adapter = createAdapterDouble();
+    const tokenAdapter = createTokenAdapterDouble();
+    vi.mocked(adapter.createApp).mockResolvedValue({
+      status: 201,
+      headers: new Headers(),
+      body: "{\"id\":\"app-1\"}"
+    });
+    vi.mocked(adapter.createAppToken).mockResolvedValue({
+      status: 200,
+      headers: new Headers(),
+      body: "{\"token\":\"kw-token-1\"}"
+    });
+    const handler = findHandler(
+      createUserManagementRouter(adapter, tokenAdapter) as Router,
+      "post",
+      appsPath
+    );
+    const response = createResponseDouble();
+    const next = vi.fn<NextFunction>();
+
+    await handler?.(
+      {
+        body: { name: "App 1", password: "" },
+        headers: { authorization: "Bearer token-1" }
+      } as unknown as Request,
+      response,
+      next
+    );
+
+    expect(adapter.createApp).toHaveBeenCalledWith(
+      { name: "App 1", password: "" },
+      "token-1"
+    );
+    expect(adapter.createAppToken).toHaveBeenCalledWith(
+      { id: "app-1" },
+      "token-1"
+    );
+    expect(tokenAdapter.upsertStudioAppToken).toHaveBeenCalledWith(
+      "app-1",
+      "kw-token-1"
+    );
+    expect(response.status).toHaveBeenCalledWith(201);
+    expect(response.send).toHaveBeenCalledWith("{\"id\":\"app-1\"}");
   });
 });
 

@@ -63,7 +63,7 @@ type LogicMocks = Partial<{
   createBuiltInDigitalHumans: (ids: string[], deps: unknown) => Promise<unknown>;
   listDigitalHumans: () => Promise<unknown>;
   getDigitalHuman: (id: string, bearerToken?: string) => Promise<unknown>;
-  createDigitalHuman: (body: unknown) => Promise<unknown>;
+  createDigitalHuman: (body: unknown, bearerToken?: string) => Promise<unknown>;
   updateDigitalHuman: (id: string, patch: unknown, bearerToken?: string) => Promise<unknown>;
   deleteDigitalHuman: (id: string, deleteFiles?: boolean) => Promise<void>;
 }>;
@@ -348,7 +348,7 @@ describe("createDigitalHumanRouter", () => {
       skills: undefined,
       bkn: undefined,
       channel: undefined
-    });
+    }, undefined);
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -711,7 +711,8 @@ describe("createDigitalHumanRouter", () => {
     expect(createDigitalHuman).toHaveBeenCalledWith(
       expect.objectContaining({
         channel: { type: "dingtalk", appId: "a", appSecret: "b" }
-      })
+      }),
+      undefined
     );
     expect(next).not.toHaveBeenCalled();
   });
@@ -785,7 +786,8 @@ describe("createDigitalHumanRouter", () => {
           kweaver_token: " kw-token ",
           app_id: " app-1 ",
           channel: { type: "dingtalk", appId: "i", appSecret: "sec" }
-        }
+        },
+        headers: { authorization: "Bearer token-1" }
       } as Request,
       response,
       next
@@ -802,7 +804,8 @@ describe("createDigitalHumanRouter", () => {
         kweaver_token: "kw-token",
         app_id: "app-1",
         channel: { type: "dingtalk", appId: "i", appSecret: "sec" }
-      })
+      }),
+      "token-1"
     );
     expect(next).not.toHaveBeenCalled();
   });
@@ -844,7 +847,7 @@ describe("createDigitalHumanRouter", () => {
       kweaver_token: undefined,
       app_id: undefined,
       channel: { appId: "app", appSecret: "secret" }
-    });
+    }, undefined);
   });
 
   it("PUT forwards skills and bkn patches", async () => {

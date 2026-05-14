@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { HttpError } from "../errors/http-error";
+import type { AuthorizationAdapter } from "../adapters/authorization-adapter";
 import type { DigitalEmployeeTokenAdapter } from "../adapters/digital-employee-token-adapter";
 import type { OpenClawCronAdapter } from "../adapters/openclaw-cron-adapter";
 import type { UserManagementAdapter } from "../adapters/user-management-adapter";
@@ -45,6 +46,7 @@ function stubDigitalEmployeeTokenAdapter(
 ): DigitalEmployeeTokenAdapter {
   return {
     findAppId: vi.fn(),
+    hasStudioAppToken: vi.fn().mockResolvedValue(false),
     findKweaverToken: vi.fn(),
     findBknScope: vi.fn(),
     upsertDigitalEmployee: vi.fn().mockResolvedValue(undefined),
@@ -65,6 +67,35 @@ function stubUserManagementAdapter(
     findAppById: vi.fn(),
     createApp: vi.fn(),
     createAppToken: vi.fn(),
+    ...overrides
+  };
+}
+
+function stubAuthorizationAdapter(
+  overrides?: Partial<AuthorizationAdapter>
+): AuthorizationAdapter {
+  return {
+    listAccessorPolicies: vi.fn(),
+    listResourcePolicies: vi.fn().mockResolvedValue({
+      status: 200,
+      headers: new Headers(),
+      body: JSON.stringify({ entries: [], total_count: 0 })
+    }),
+    createPolicies: vi.fn().mockResolvedValue({
+      status: 201,
+      headers: new Headers(),
+      body: "{\"ids\":[\"policy-1\"]}"
+    }),
+    updatePolicies: vi.fn().mockResolvedValue({
+      status: 204,
+      headers: new Headers(),
+      body: ""
+    }),
+    deletePolicies: vi.fn().mockResolvedValue({
+      status: 204,
+      headers: new Headers(),
+      body: ""
+    }),
     ...overrides
   };
 }
@@ -1089,7 +1120,7 @@ describe("DefaultDigitalHumanLogic lifecycle (filesystem + adapter)", () => {
     ]);
   });
 
-  it("createDigitalHuman writes KWeaver token to the digital employee table", async () => {
+  it("createDigitalHuman writes KWeaver token through the digital employee adapter", async () => {
     const setAgentFile = vi.fn().mockResolvedValue({ ok: true });
     const getAgentFile = vi.fn();
     const tokenAdapter = stubDigitalEmployeeTokenAdapter();
@@ -1127,6 +1158,13 @@ describe("DefaultDigitalHumanLogic lifecycle (filesystem + adapter)", () => {
   it("createDigitalHuman writes BKN scope to the database instead of SOUL.md", async () => {
     const setAgentFile = vi.fn().mockResolvedValue({ ok: true });
     const tokenAdapter = stubDigitalEmployeeTokenAdapter();
+    const userManagementAdapter = stubUserManagementAdapter({
+      createAppToken: vi.fn().mockResolvedValue({
+        status: 200,
+        headers: new Headers(),
+        body: JSON.stringify({ token: "kw-token-bkn" })
+      })
+    });
     const logic = new DefaultDigitalHumanLogic({
       openClawAgentsAdapter: {
         listAgents: vi.fn(),
@@ -1140,23 +1178,27 @@ describe("DefaultDigitalHumanLogic lifecycle (filesystem + adapter)", () => {
       } as never,
       openClawCronAdapter: stubCronAdapter(),
       agentSkillsLogic: stubAgentSkills(),
-      digitalEmployeeTokenAdapter: tokenAdapter
+      digitalEmployeeTokenAdapter: tokenAdapter,
+      userManagementAdapter
     });
 
-    await logic.createDigitalHuman({
-      id: "agent-bkn",
-      name: "BKN Agent",
-      app_id: "app-1",
-      bkn: [
-        { name: "Knowledge 1", id: "kn-1" },
-        { name: "Knowledge 2", id: "kn-2" }
-      ]
-    });
+    await logic.createDigitalHuman(
+      {
+        id: "agent-bkn",
+        name: "BKN Agent",
+        app_id: "app-1",
+        bkn: [
+          { name: "Knowledge 1", id: "kn-1" },
+          { name: "Knowledge 2", id: "kn-2" }
+        ]
+      },
+      "user-token"
+    );
 
     expect(tokenAdapter.upsertDigitalEmployee).toHaveBeenCalledWith(
       "agent-bkn",
       "app-1",
-      null,
+      "kw-token-bkn",
       "kn-1,kn-2"
     );
     expect(setAgentFile).toHaveBeenCalledWith(
@@ -1165,6 +1207,227 @@ describe("DefaultDigitalHumanLogic lifecycle (filesystem + adapter)", () => {
         content: expect.not.stringContaining("kn-1") as string
       })
     );
+  });
+
+  it("createDigitalHuman creates and persists a new app token when binding an app account", async () => {
+    const tokenAdapter = stubDigitalEmployeeTokenAdapter();
+    const userManagementAdapter = stubUserManagementAdapter({
+      createAppToken: vi.fn().mockResolvedValue({
+        status: 200,
+        headers: new Headers(),
+        body: JSON.stringify({ token: "kw-token-new" })
+      })
+    });
+    const logic = new DefaultDigitalHumanLogic({
+      openClawAgentsAdapter: {
+        listAgents: vi.fn(),
+        createAgent: vi.fn().mockResolvedValue({ ok: true }),
+        deleteAgent: vi.fn(),
+        getAgentFile: vi.fn(),
+        setAgentFile: vi.fn().mockResolvedValue({ ok: true }),
+        listAgentFiles: vi.fn().mockResolvedValue({ agentId: "", files: [] }),
+        getConfig: vi.fn(),
+        patchConfig: vi.fn()
+      } as never,
+      openClawCronAdapter: stubCronAdapter(),
+      agentSkillsLogic: stubAgentSkills(),
+      digitalEmployeeTokenAdapter: tokenAdapter,
+      userManagementAdapter
+    });
+
+    await logic.createDigitalHuman(
+      {
+        id: "agent-app-token",
+        name: "App Token Agent",
+        app_id: "app-1"
+      },
+      "user-token"
+    );
+
+    expect(userManagementAdapter.createAppToken).toHaveBeenCalledWith(
+      { id: "app-1" },
+      "user-token"
+    );
+    expect(tokenAdapter.upsertDigitalEmployee).toHaveBeenCalledWith(
+      "agent-app-token",
+      "app-1",
+      "kw-token-new",
+      null
+    );
+  });
+
+  it("createDigitalHuman does not refresh the token when the target app account already has a Studio token record", async () => {
+    const tokenAdapter = stubDigitalEmployeeTokenAdapter({
+      hasStudioAppToken: vi.fn().mockResolvedValue(true)
+    });
+    const userManagementAdapter = stubUserManagementAdapter({
+      createAppToken: vi.fn()
+    });
+    const logic = new DefaultDigitalHumanLogic({
+      openClawAgentsAdapter: {
+        listAgents: vi.fn(),
+        createAgent: vi.fn().mockResolvedValue({ ok: true }),
+        deleteAgent: vi.fn(),
+        getAgentFile: vi.fn(),
+        setAgentFile: vi.fn().mockResolvedValue({ ok: true }),
+        listAgentFiles: vi.fn().mockResolvedValue({ agentId: "", files: [] }),
+        getConfig: vi.fn(),
+        patchConfig: vi.fn()
+      } as never,
+      openClawCronAdapter: stubCronAdapter(),
+      agentSkillsLogic: stubAgentSkills(),
+      digitalEmployeeTokenAdapter: tokenAdapter,
+      userManagementAdapter
+    });
+
+    await logic.createDigitalHuman(
+      {
+        id: "agent-app-token-existing",
+        name: "App Token Existing Agent",
+        app_id: "app-1"
+      },
+      "user-token"
+    );
+
+    expect(userManagementAdapter.createAppToken).not.toHaveBeenCalled();
+    expect(tokenAdapter.upsertDigitalEmployee).toHaveBeenCalledWith(
+      "agent-app-token-existing",
+      "app-1",
+      null,
+      null
+    );
+  });
+
+  it("createDigitalHuman prefers the freshly generated token over a request token when app_id is bound", async () => {
+    const tokenAdapter = stubDigitalEmployeeTokenAdapter();
+    const userManagementAdapter = stubUserManagementAdapter({
+      createAppToken: vi.fn().mockResolvedValue({
+        status: 200,
+        headers: new Headers(),
+        body: JSON.stringify({ token: "kw-token-fresh" })
+      })
+    });
+    const logic = new DefaultDigitalHumanLogic({
+      openClawAgentsAdapter: {
+        listAgents: vi.fn(),
+        createAgent: vi.fn().mockResolvedValue({ ok: true }),
+        deleteAgent: vi.fn(),
+        getAgentFile: vi.fn(),
+        setAgentFile: vi.fn().mockResolvedValue({ ok: true }),
+        listAgentFiles: vi.fn().mockResolvedValue({ agentId: "", files: [] }),
+        getConfig: vi.fn(),
+        patchConfig: vi.fn()
+      } as never,
+      openClawCronAdapter: stubCronAdapter(),
+      agentSkillsLogic: stubAgentSkills(),
+      digitalEmployeeTokenAdapter: tokenAdapter,
+      userManagementAdapter
+    });
+
+    await logic.createDigitalHuman(
+      {
+        id: "agent-app-token-override",
+        name: "App Token Override Agent",
+        app_id: "app-1",
+        kweaver_token: "stale-token"
+      },
+      "user-token"
+    );
+
+    expect(tokenAdapter.upsertDigitalEmployee).toHaveBeenCalledWith(
+      "agent-app-token-override",
+      "app-1",
+      "kw-token-fresh",
+      null
+    );
+  });
+
+  it("createDigitalHuman creates missing BKN access policies for the bound application account", async () => {
+    const authorizationAdapter = stubAuthorizationAdapter();
+    const userManagementAdapter = stubUserManagementAdapter({
+      createAppToken: vi.fn().mockResolvedValue({
+        status: 200,
+        headers: new Headers(),
+        body: JSON.stringify({ token: "kw-token-policy" })
+      })
+    });
+    const logic = new DefaultDigitalHumanLogic({
+      openClawAgentsAdapter: {
+        listAgents: vi.fn(),
+        createAgent: vi.fn().mockResolvedValue({ ok: true }),
+        deleteAgent: vi.fn(),
+        getAgentFile: vi.fn(),
+        setAgentFile: vi.fn().mockResolvedValue({ ok: true }),
+        listAgentFiles: vi.fn().mockResolvedValue({ agentId: "", files: [] }),
+        getConfig: vi.fn(),
+        patchConfig: vi.fn()
+      } as never,
+      openClawCronAdapter: stubCronAdapter(),
+      agentSkillsLogic: stubAgentSkills(),
+      authorizationAdapter,
+      userManagementAdapter
+    });
+
+    await logic.createDigitalHuman(
+      {
+        id: "agent-bkn-policy",
+        name: "Policy Agent",
+        app_id: "app-1",
+        bkn: [{ id: "kn-1", name: "Knowledge 1" }]
+      },
+      "user-token"
+    );
+
+    expect(authorizationAdapter.listResourcePolicies).toHaveBeenCalledWith(
+      { resource_id: "kn-1", resource_type: "knowledge_network", limit: 1000 },
+      "user-token"
+    );
+    expect(authorizationAdapter.createPolicies).toHaveBeenCalledWith(
+      [
+        {
+          accessor: { id: "app-1", type: "app" },
+          resource: { id: "kn-1", type: "knowledge_network", name: "Knowledge 1" },
+          operation: { allow: [{ id: "data_query" }, { id: "view_detail" }], deny: [] },
+          expires_at: "1970-01-01T08:00:00+08:00"
+        }
+      ],
+      "user-token"
+    );
+    expect(authorizationAdapter.deletePolicies).not.toHaveBeenCalled();
+  });
+
+  it("createDigitalHuman requires a user bearer token when policy sync is needed", async () => {
+    const logic = new DefaultDigitalHumanLogic({
+      openClawAgentsAdapter: {
+        listAgents: vi.fn(),
+        createAgent: vi.fn().mockResolvedValue({ ok: true }),
+        deleteAgent: vi.fn(),
+        getAgentFile: vi.fn(),
+        setAgentFile: vi.fn().mockResolvedValue({ ok: true }),
+        listAgentFiles: vi.fn().mockResolvedValue({ agentId: "", files: [] }),
+        getConfig: vi.fn(),
+        patchConfig: vi.fn()
+      } as never,
+      openClawCronAdapter: stubCronAdapter(),
+      agentSkillsLogic: stubAgentSkills(),
+      authorizationAdapter: stubAuthorizationAdapter(),
+      userManagementAdapter: stubUserManagementAdapter({
+        createAppToken: vi.fn().mockResolvedValue({
+          status: 200,
+          headers: new Headers(),
+          body: JSON.stringify({ token: "kw-token-auth" })
+        })
+      })
+    });
+
+    await expect(
+      logic.createDigitalHuman({
+        id: "agent-no-token",
+        name: "No Token",
+        app_id: "app-1",
+        bkn: [{ id: "kn-1", name: "Knowledge 1" }]
+      })
+    ).rejects.toMatchObject({ statusCode: 401 });
   });
 
   it("createDigitalHuman uses the provided id instead of generating a uuid", async () => {
@@ -1486,6 +1749,266 @@ describe("DefaultDigitalHumanLogic lifecycle (filesystem + adapter)", () => {
 
     expect(tokenAdapter.upsertAppId).toHaveBeenCalledWith(id, "app-2");
     expect(result.app_account).toEqual({ id: "app-2", name: "应用账户B" });
+  });
+
+  it("updateDigitalHuman creates and persists a new token when the app account changes", async () => {
+    const id = "agent-app-token-update";
+    const tokenAdapter = stubDigitalEmployeeTokenAdapter({
+      findAppId: vi.fn().mockResolvedValue("app-1"),
+      findBknScope: vi.fn().mockResolvedValue("kn-1")
+    });
+    const userManagementAdapter = stubUserManagementAdapter({
+      createAppToken: vi.fn().mockResolvedValue({
+        status: 200,
+        headers: new Headers(),
+        body: JSON.stringify({ token: "kw-token-switched" })
+      }),
+      findAppById: vi.fn().mockResolvedValue({ id: "app-2", name: "应用账户B" })
+    });
+    const listKnowledgeNetworks = vi.fn().mockResolvedValue({
+      status: 200,
+      headers: new Headers(),
+      body: JSON.stringify({
+        entries: [{ id: "kn-1", name: "Knowledge 1", comment: "Comment 1", color: "#1677ff" }],
+        total_count: 1
+      })
+    });
+    const logic = new DefaultDigitalHumanLogic({
+      openClawAgentsAdapter: {
+        listAgents: vi.fn(),
+        createAgent: vi.fn(),
+        deleteAgent: vi.fn(),
+        getAgentFile: vi.fn().mockImplementation(async ({ name }: { name: string }) => ({
+          file: { content: name === "IDENTITY.md" ? "- Name: Old\n" : "Soul\n" }
+        })),
+        setAgentFile: vi.fn().mockResolvedValue({ ok: true }),
+        listAgentFiles: vi.fn().mockResolvedValue({ agentId: id, files: [] }),
+        getConfig: vi.fn(),
+        patchConfig: vi.fn()
+      } as never,
+      openClawCronAdapter: stubCronAdapter(),
+      agentSkillsLogic: stubAgentSkills(),
+      digitalEmployeeTokenAdapter: tokenAdapter,
+      userManagementAdapter,
+      bknLogic: stubBknLogic({ listKnowledgeNetworks })
+    });
+
+    const result = await logic.updateDigitalHuman(id, { app_id: "app-2" }, "user-token");
+
+    expect(userManagementAdapter.createAppToken).toHaveBeenCalledWith(
+      { id: "app-2" },
+      "user-token"
+    );
+    expect(tokenAdapter.upsertDigitalEmployee).toHaveBeenCalledWith(
+      id,
+      "app-2",
+      "kw-token-switched",
+      "kn-1"
+    );
+    expect(tokenAdapter.upsertAppId).not.toHaveBeenCalled();
+    expect(result.app_account).toEqual({ id: "app-2", name: "应用账户B" });
+  });
+
+  it("updateDigitalHuman does not refresh the token when the switched app account already has a Studio token record", async () => {
+    const id = "agent-app-token-existing-update";
+    const tokenAdapter = stubDigitalEmployeeTokenAdapter({
+      findAppId: vi.fn().mockResolvedValue("app-1"),
+      hasStudioAppToken: vi.fn().mockResolvedValue(true)
+    });
+    const userManagementAdapter = stubUserManagementAdapter({
+      createAppToken: vi.fn(),
+      findAppById: vi.fn().mockResolvedValue({ id: "app-2", name: "应用账户B" })
+    });
+    const logic = new DefaultDigitalHumanLogic({
+      openClawAgentsAdapter: {
+        listAgents: vi.fn(),
+        createAgent: vi.fn(),
+        deleteAgent: vi.fn(),
+        getAgentFile: vi.fn().mockImplementation(async ({ name }: { name: string }) => ({
+          file: { content: name === "IDENTITY.md" ? "- Name: Old\n" : "Soul\n" }
+        })),
+        setAgentFile: vi.fn().mockResolvedValue({ ok: true }),
+        listAgentFiles: vi.fn().mockResolvedValue({ agentId: id, files: [] }),
+        getConfig: vi.fn(),
+        patchConfig: vi.fn()
+      } as never,
+      openClawCronAdapter: stubCronAdapter(),
+      agentSkillsLogic: stubAgentSkills(),
+      digitalEmployeeTokenAdapter: tokenAdapter,
+      userManagementAdapter
+    });
+
+    const result = await logic.updateDigitalHuman(id, { app_id: "app-2" }, "user-token");
+
+    expect(userManagementAdapter.createAppToken).not.toHaveBeenCalled();
+    expect(tokenAdapter.upsertAppId).toHaveBeenCalledWith(id, "app-2");
+    expect(tokenAdapter.upsertDigitalEmployee).not.toHaveBeenCalled();
+    expect(result.app_account).toEqual({ id: "app-2", name: "应用账户B" });
+  });
+
+  it("updateDigitalHuman prefers the freshly generated token over a patch token when app_id changes", async () => {
+    const id = "agent-app-token-update-override";
+    const tokenAdapter = stubDigitalEmployeeTokenAdapter({
+      findAppId: vi.fn().mockResolvedValue("app-1"),
+      findBknScope: vi.fn().mockResolvedValue("kn-1")
+    });
+    const userManagementAdapter = stubUserManagementAdapter({
+      createAppToken: vi.fn().mockResolvedValue({
+        status: 200,
+        headers: new Headers(),
+        body: JSON.stringify({ token: "kw-token-switched-real" })
+      }),
+      findAppById: vi.fn().mockResolvedValue({ id: "app-2", name: "应用账户B" })
+    });
+    const listKnowledgeNetworks = vi.fn().mockResolvedValue({
+      status: 200,
+      headers: new Headers(),
+      body: JSON.stringify({
+        entries: [{ id: "kn-1", name: "Knowledge 1", comment: "Comment 1", color: "#1677ff" }],
+        total_count: 1
+      })
+    });
+    const logic = new DefaultDigitalHumanLogic({
+      openClawAgentsAdapter: {
+        listAgents: vi.fn(),
+        createAgent: vi.fn(),
+        deleteAgent: vi.fn(),
+        getAgentFile: vi.fn().mockImplementation(async ({ name }: { name: string }) => ({
+          file: { content: name === "IDENTITY.md" ? "- Name: Old\n" : "Soul\n" }
+        })),
+        setAgentFile: vi.fn().mockResolvedValue({ ok: true }),
+        listAgentFiles: vi.fn().mockResolvedValue({ agentId: id, files: [] }),
+        getConfig: vi.fn(),
+        patchConfig: vi.fn()
+      } as never,
+      openClawCronAdapter: stubCronAdapter(),
+      agentSkillsLogic: stubAgentSkills(),
+      digitalEmployeeTokenAdapter: tokenAdapter,
+      userManagementAdapter,
+      bknLogic: stubBknLogic({ listKnowledgeNetworks })
+    });
+
+    await logic.updateDigitalHuman(
+      id,
+      { app_id: "app-2", kweaver_token: "stale-token" },
+      "user-token"
+    );
+
+    expect(tokenAdapter.upsertDigitalEmployee).toHaveBeenCalledWith(
+      id,
+      "app-2",
+      "kw-token-switched-real",
+      "kn-1"
+    );
+    expect(tokenAdapter.upsertKweaverToken).not.toHaveBeenCalled();
+  });
+
+  it("updateDigitalHuman does not create a new token when the app account is unchanged", async () => {
+    const id = "agent-app-token-stable";
+    const tokenAdapter = stubDigitalEmployeeTokenAdapter({
+      findAppId: vi.fn().mockResolvedValue("app-1")
+    });
+    const userManagementAdapter = stubUserManagementAdapter({
+      createAppToken: vi.fn(),
+      findAppById: vi.fn().mockResolvedValue({ id: "app-1", name: "应用账户A" })
+    });
+    const logic = new DefaultDigitalHumanLogic({
+      openClawAgentsAdapter: {
+        listAgents: vi.fn(),
+        createAgent: vi.fn(),
+        deleteAgent: vi.fn(),
+        getAgentFile: vi.fn().mockImplementation(async ({ name }: { name: string }) => ({
+          file: { content: name === "IDENTITY.md" ? "- Name: Old\n" : "Soul\n" }
+        })),
+        setAgentFile: vi.fn().mockResolvedValue({ ok: true }),
+        listAgentFiles: vi.fn().mockResolvedValue({ agentId: id, files: [] }),
+        getConfig: vi.fn(),
+        patchConfig: vi.fn()
+      } as never,
+      openClawCronAdapter: stubCronAdapter(),
+      agentSkillsLogic: stubAgentSkills(),
+      digitalEmployeeTokenAdapter: tokenAdapter,
+      userManagementAdapter
+    });
+
+    await logic.updateDigitalHuman(id, { app_id: "app-1" }, "user-token");
+
+    expect(userManagementAdapter.createAppToken).not.toHaveBeenCalled();
+    expect(tokenAdapter.upsertAppId).toHaveBeenCalledWith(id, "app-1");
+    expect(tokenAdapter.upsertDigitalEmployee).not.toHaveBeenCalled();
+  });
+
+  it("updateDigitalHuman updates policies when the current app account misses required BKN operations", async () => {
+    const id = "agent-app-policy";
+    const tokenAdapter = stubDigitalEmployeeTokenAdapter({
+      findAppId: vi.fn().mockResolvedValue("app-2"),
+      findBknScope: vi.fn().mockResolvedValue("kn-1")
+    });
+    const authorizationAdapter = stubAuthorizationAdapter({
+      listResourcePolicies: vi.fn().mockResolvedValue({
+        status: 200,
+        headers: new Headers(),
+        body: JSON.stringify({
+          entries: [
+            {
+              id: "policy-existing",
+              accessor: { id: "app-2", type: "app", name: "App 2", parent_deps: [] },
+              operation: { allow: [{ id: "data_query", name: "数据查询" }], deny: [] },
+              expires_at: "1970-01-01T08:00:00+08:00"
+            }
+          ],
+          total_count: 1
+        })
+      })
+    });
+    const listKnowledgeNetworks = vi.fn().mockResolvedValue({
+      status: 200,
+      headers: new Headers(),
+      body: JSON.stringify({
+        entries: [{ id: "kn-1", name: "Knowledge 1", comment: "Comment 1", color: "#1677ff" }],
+        total_count: 1
+      })
+    });
+    const logic = new DefaultDigitalHumanLogic({
+      openClawAgentsAdapter: {
+        listAgents: vi.fn(),
+        createAgent: vi.fn(),
+        deleteAgent: vi.fn(),
+        getAgentFile: vi.fn().mockImplementation(async ({ name }: { name: string }) => ({
+          file: {
+            content: name === "IDENTITY.md" ? "- Name: Old\n" : "Soul\n"
+          }
+        })),
+        setAgentFile: vi.fn().mockResolvedValue({ ok: true }),
+        listAgentFiles: vi.fn().mockResolvedValue({ agentId: id, files: [] }),
+        getConfig: vi.fn(),
+        patchConfig: vi.fn()
+      } as never,
+      openClawCronAdapter: stubCronAdapter(),
+      agentSkillsLogic: stubAgentSkills(),
+      digitalEmployeeTokenAdapter: tokenAdapter,
+      bknLogic: stubBknLogic({ listKnowledgeNetworks }),
+      authorizationAdapter
+    });
+
+    await logic.updateDigitalHuman(id, { app_id: "app-2" }, "user-token");
+
+    expect(authorizationAdapter.listResourcePolicies).toHaveBeenCalledWith(
+      { resource_id: "kn-1", resource_type: "knowledge_network", limit: 1000 },
+      "user-token"
+    );
+    expect(authorizationAdapter.createPolicies).not.toHaveBeenCalled();
+    expect(authorizationAdapter.updatePolicies).toHaveBeenCalledWith(
+      "policy-existing",
+      [
+        {
+          operation: { allow: [{ id: "data_query" }, { id: "view_detail" }], deny: [] },
+          expires_at: "1970-01-01T08:00:00+08:00"
+        }
+      ],
+      "user-token"
+    );
+    expect(authorizationAdapter.deletePolicies).not.toHaveBeenCalled();
   });
 
   it("updateDigitalHuman removes KWeaver token from the database and clears BKN", async () => {

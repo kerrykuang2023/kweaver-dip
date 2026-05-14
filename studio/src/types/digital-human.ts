@@ -281,7 +281,8 @@ export interface CreateDigitalHumanRequest {
 
   /**
    * KWeaver application account token used by the digital human at runtime.
-   * Written to `t_digital_employee.kweaver_token` and never returned by read APIs.
+   * When `app_id` is bound, written to `t_studio_account_token.f_token` for that app account
+   * and never returned by read APIs.
    */
   kweaver_token?: string;
 
@@ -435,8 +436,8 @@ export interface UpdateDigitalHumanRequest {
 
   /**
    * KWeaver application account token update.
-   * A non-empty string writes/replaces `t_digital_employee.kweaver_token`;
-   * `null` or an empty string removes it.
+   * A non-empty string writes/replaces `t_studio_account_token.f_token` for the currently bound
+   * application account; `null` or an empty string removes the current digital human's app binding.
    * When removed, BKN entries are cleared.
    */
   kweaver_token?: string | null;

@@ -148,6 +148,7 @@
       "unboundKnowledgeWarning": "Configured business knowledge networks are currently unavailable. Bind an app account so the digital employee can access them.",
       "bindNow": "Bind",
       "switch": "Switch app account",
+      "switchWarning": "Switching the app account invalidates the tokens already created for that account. Make the switch only when you are ready to publish the digital employee.",
       "delete": "Delete",
       "deleteTitle": "Delete app account?",
       "deleteContent": "After deletion, the digital employee cannot access linked business knowledge networks. Continue?",

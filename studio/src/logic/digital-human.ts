@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+import type { AuthorizationAdapter } from "../adapters/authorization-adapter";
 import type { DigitalEmployeeTokenAdapter } from "../adapters/digital-employee-token-adapter";
 import type { OpenClawAgentsAdapter } from "../adapters/openclaw-agents-adapter";
 import type { OpenClawCronAdapter } from "../adapters/openclaw-cron-adapter";
@@ -37,6 +38,15 @@ import {
 
 const HIDDEN_DIGITAL_HUMAN_IDS = new Set(["main", "__internal_skill_agent__"]);
 const DIGITAL_HUMAN_CRON_SCAN_LIMIT = 200;
+const AUTHORIZATION_RESOURCE_POLICY_PAGE_LIMIT = 1000;
+const AUTHORIZATION_ACCESSOR_POLICY_PAGE_LIMIT = 1000;
+const BKN_AUTH_RESOURCE_TYPE = "knowledge_network";
+const BKN_AUTH_OPERATION_IDS = ["data_query", "view_detail"] as const;
+const BKN_AUTH_EXPIRES_AT = "1970-01-01T08:00:00+08:00";
+
+interface UserManagementAppTokenBody {
+  token?: unknown;
+}
 
 /**
  * Application logic used to manage digital humans.
@@ -67,7 +77,10 @@ export interface DigitalHumanLogic {
    * @param request The creation request payload.
    * @returns The created digital human summary including the rendered template.
    */
-  createDigitalHuman(request: CreateDigitalHumanRequest): Promise<CreateDigitalHumanResult>;
+  createDigitalHuman(
+    request: CreateDigitalHumanRequest,
+    bearerToken?: string
+  ): Promise<CreateDigitalHumanResult>;
 
   /**
    * Deletes an existing digital human.
@@ -124,6 +137,11 @@ export interface DigitalHumanLogicOptions {
    * Adapter used to resolve application account details from user-management.
    */
   userManagementAdapter?: UserManagementAdapter;
+
+  /**
+   * Adapter used to synchronize authorization policies for BKN access.
+   */
+  authorizationAdapter?: AuthorizationAdapter;
 }
 
 /**
@@ -136,6 +154,7 @@ export class DefaultDigitalHumanLogic implements DigitalHumanLogic {
   private readonly digitalEmployeeTokenAdapter?: DigitalEmployeeTokenAdapter;
   private readonly bknLogic: BknLogic;
   private readonly userManagementAdapter?: UserManagementAdapter;
+  private readonly authorizationAdapter?: AuthorizationAdapter;
 
   /**
    * Creates the digital human logic.
@@ -149,6 +168,7 @@ export class DefaultDigitalHumanLogic implements DigitalHumanLogic {
     this.digitalEmployeeTokenAdapter = options.digitalEmployeeTokenAdapter;
     this.bknLogic = options.bknLogic ?? new DefaultBknLogic();
     this.userManagementAdapter = options.userManagementAdapter;
+    this.authorizationAdapter = options.authorizationAdapter;
   }
 
   /**
@@ -246,7 +266,8 @@ export class DefaultDigitalHumanLogic implements DigitalHumanLogic {
    * @returns The created digital human summary.
    */
   public async createDigitalHuman(
-    request: CreateDigitalHumanRequest
+    request: CreateDigitalHumanRequest,
+    bearerToken?: string
   ): Promise<CreateDigitalHumanResult> {
     const id = request.id?.trim() || randomUUID();
     const template = buildTemplate(request);
@@ -259,11 +280,24 @@ export class DefaultDigitalHumanLogic implements DigitalHumanLogic {
 
     await this.writeTemplateViaOpenClawFilesRpc(id, template);
 
+    const generatedKweaverToken = await this.createKweaverTokenIfNeeded(
+      request.app_id,
+      undefined,
+      bearerToken
+    );
+    const kweaverToken = generatedKweaverToken ?? request.kweaver_token;
+
     await this.writeDigitalEmployeeRecordToDatabase(
       id,
       request.app_id ?? null,
-      request.kweaver_token ?? null,
+      kweaverToken ?? null,
       serializeBknScope(request.bkn)
+    );
+
+    await this.ensureKnowledgeAccessPolicies(
+      request.app_id ?? null,
+      request.bkn,
+      bearerToken
     );
 
     const skills = normalizeCreateDigitalHumanSkills(request.skills);
@@ -359,23 +393,54 @@ export class DefaultDigitalHumanLogic implements DigitalHumanLogic {
 
     const current = mergeFilesToTemplate(identityContent, soulContent);
     const merged = mergeTemplatePatch(current, patch);
+    const currentAppId =
+      patch.app_id !== undefined ? await this.readPersistedAppId(id) : undefined;
+    const generatedKweaverToken = await this.createKweaverTokenIfNeeded(
+      patch.app_id,
+      currentAppId,
+      bearerToken
+    );
     if (patch.kweaver_token === null) {
       merged.bkn = [];
     }
 
     await this.writeTemplateViaOpenClawFilesRpc(id, merged);
 
-    if (patch.kweaver_token !== undefined) {
+    if (generatedKweaverToken !== undefined) {
+      await this.writeDigitalEmployeeRecordToDatabase(
+        id,
+        patch.app_id ?? null,
+        generatedKweaverToken,
+        "bkn" in patch || patch.kweaver_token === null
+          ? serializeBknScope(merged.bkn)
+          : await this.readPersistedBknScope(id)
+      );
+    } else if (patch.kweaver_token !== undefined) {
       await this.writeKweaverTokenToDatabase(id, patch.kweaver_token);
     }
 
-    if (patch.app_id !== undefined) {
+    if (patch.app_id !== undefined && generatedKweaverToken === undefined) {
       await this.writeAppIdToDatabase(id, patch.app_id);
     }
 
     if ("bkn" in patch || patch.kweaver_token === null) {
       await this.writeBknScopeToDatabase(id, merged.bkn);
     }
+
+    const effectiveAppId =
+      patch.app_id !== undefined
+        ? patch.app_id
+        : await this.readPersistedAppId(id);
+    const effectiveBkn =
+      "bkn" in patch || patch.kweaver_token === null
+        ? merged.bkn
+        : await this.readBknEntries(id, bearerToken);
+
+    await this.ensureKnowledgeAccessPolicies(
+      effectiveAppId ?? null,
+      effectiveBkn,
+      bearerToken
+    );
 
     let skillsOut: string[] | undefined;
     if (patch.skills !== undefined) {
@@ -525,7 +590,7 @@ export class DefaultDigitalHumanLogic implements DigitalHumanLogic {
   }
 
   /**
-   * Persists a digital employee record and optional KWeaver token.
+   * Persists a digital employee record and the optional token for its bound app account.
    *
    * @param agentId Digital employee id, equal to the OpenClaw agent id.
    * @param appId Application account id to write, or `null` when not configured.
@@ -568,7 +633,7 @@ export class DefaultDigitalHumanLogic implements DigitalHumanLogic {
   }
 
   /**
-   * Persists a KWeaver token update into the digital employee table.
+   * Persists a KWeaver token update into the bound application account token table.
    *
    * @param agentId Digital employee id, equal to the OpenClaw agent id.
    * @param token Token to write, or `null` to remove the stored token.
@@ -668,6 +733,138 @@ export class DefaultDigitalHumanLogic implements DigitalHumanLogic {
 
     return this.userManagementAdapter.findAppById(appId, bearerToken);
   }
+
+  /**
+   * Reads the persisted application account id for one digital human.
+   *
+   * @param agentId Digital employee id, equal to the OpenClaw agent id.
+   * @returns Bound application account id, if any.
+   */
+  private async readPersistedAppId(agentId: string): Promise<string | undefined> {
+    if (this.digitalEmployeeTokenAdapter === undefined) {
+      return undefined;
+    }
+
+    return this.digitalEmployeeTokenAdapter.findAppId(agentId);
+  }
+
+  /**
+   * Reads the persisted BKN scope for one digital human.
+   *
+   * @param agentId Digital employee id, equal to the OpenClaw agent id.
+   * @returns Persisted comma-separated BKN scope, or `null` when unset.
+   */
+  private async readPersistedBknScope(agentId: string): Promise<string | null> {
+    if (this.digitalEmployeeTokenAdapter === undefined) {
+      return null;
+    }
+
+    return (await this.digitalEmployeeTokenAdapter.findBknScope(agentId)) ?? null;
+  }
+
+  /**
+   * Creates a fresh KWeaver token only when the bound application account changes.
+   *
+   * @param nextAppId The application account id being persisted.
+   * @param currentAppId The currently persisted application account id.
+   * @param bearerToken Optional user bearer token used to call user-management.
+   * @returns The newly created token when a switch happened, otherwise `undefined`.
+   */
+  private async createKweaverTokenIfNeeded(
+    nextAppId: string | null | undefined,
+    currentAppId: string | undefined,
+    bearerToken?: string
+  ): Promise<string | undefined> {
+    if (nextAppId === undefined || nextAppId === null || nextAppId === currentAppId) {
+      return undefined;
+    }
+    if (
+      this.digitalEmployeeTokenAdapter !== undefined &&
+      await this.digitalEmployeeTokenAdapter.hasStudioAppToken(nextAppId)
+    ) {
+      return undefined;
+    }
+    if (this.userManagementAdapter === undefined) {
+      throw new HttpError(500, "user-management adapter is not configured");
+    }
+    if (bearerToken === undefined || bearerToken.trim().length === 0) {
+      throw new HttpError(401, "authorization bearer token is required");
+    }
+
+    const response = await this.userManagementAdapter.createAppToken(
+      { id: nextAppId },
+      bearerToken
+    );
+
+    return parseUserManagementAppToken(response.body);
+  }
+
+  /**
+   * Ensures the current app account has permanent read policies on the selected BKNs.
+   *
+   * Existing policies are updated in place when found; missing ones are created.
+   * Policies are never deleted here because application-account permissions may be
+   * intentionally shared by multiple digital humans.
+   *
+   * @param appId Application account id currently bound to the digital human.
+   * @param bkn Selected business knowledge networks.
+   * @param bearerToken User bearer token required by authorization APIs.
+   */
+  private async ensureKnowledgeAccessPolicies(
+    appId: string | null,
+    bkn: BknEntry[] | undefined,
+    bearerToken?: string
+  ): Promise<void> {
+    if (
+      this.authorizationAdapter === undefined ||
+      appId === null ||
+      appId.trim().length === 0 ||
+      bkn === undefined ||
+      bkn.length === 0
+    ) {
+      return;
+    }
+
+    if (bearerToken === undefined || bearerToken.trim().length === 0) {
+      throw new HttpError(
+        401,
+        "Authorization bearer token is required to synchronize knowledge access policies"
+      );
+    }
+
+    for (const entry of bkn) {
+      const resourceId = entry.id.trim();
+      if (resourceId.length === 0) {
+        continue;
+      }
+
+      const policies = await this.authorizationAdapter.listResourcePolicies(
+        {
+          resource_id: resourceId,
+          resource_type: BKN_AUTH_RESOURCE_TYPE,
+          limit: AUTHORIZATION_RESOURCE_POLICY_PAGE_LIMIT
+        },
+        bearerToken
+      );
+      const matched = parseResourcePolicyListResponse(policies.body).find((policy) =>
+        policy.accessor.id === appId && policy.accessor.type === "app"
+      );
+      const body = [buildKnowledgePolicyBody(appId, entry)];
+
+      if (matched === undefined) {
+        await this.authorizationAdapter.createPolicies(body, bearerToken);
+        continue;
+      }
+
+      if (!isKnowledgePolicyUpToDate(matched)) {
+        await this.authorizationAdapter.updatePolicies(
+          matched.id,
+          [{ operation: body[0].operation, expires_at: body[0].expires_at }],
+          bearerToken
+        );
+      }
+    }
+  }
 }
 
 /**
@@ -717,6 +914,30 @@ interface BknKnowledgeNetworkBody {
   color?: unknown;
 }
 
+interface ResourcePolicyListResponseBody {
+  entries?: unknown;
+}
+
+interface ResourcePolicyBody {
+  id?: unknown;
+  accessor?: unknown;
+  operation?: unknown;
+  expires_at?: unknown;
+}
+
+interface ResourcePolicyEntry {
+  id: string;
+  accessor: {
+    id: string;
+    type: string;
+  };
+  operation: {
+    allow: string[];
+    deny: string[];
+  };
+  expiresAt: string;
+}
+
 /**
  * Parses and projects BKN Backend list response entries for digital-human details.
  *
@@ -750,6 +971,127 @@ function parseKnowledgeNetworkListResponse(body: string): BknEntry[] {
       };
     })
     .filter((entry): entry is BknEntry => entry !== undefined);
+}
+
+/**
+ * Parses a resource-policy list response and keeps only the fields needed by policy sync.
+ *
+ * @param body Raw JSON body returned by the authorization service.
+ * @returns Resource policy entries with stable app-accessor projections.
+ */
+function parseResourcePolicyListResponse(body: string): ResourcePolicyEntry[] {
+  const parsed = JSON.parse(body) as ResourcePolicyListResponseBody;
+  const entries = Array.isArray(parsed.entries) ? parsed.entries : [];
+
+  return entries
+    .map((entry): ResourcePolicyEntry | undefined => {
+      if (typeof entry !== "object" || entry === null) {
+        return undefined;
+      }
+
+      const policy = entry as ResourcePolicyBody;
+      const id = typeof policy.id === "string" ? policy.id : undefined;
+      const accessor =
+        typeof policy.accessor === "object" && policy.accessor !== null
+          ? (policy.accessor as Record<string, unknown>)
+          : undefined;
+      const operation =
+        typeof policy.operation === "object" && policy.operation !== null
+          ? (policy.operation as Record<string, unknown>)
+          : undefined;
+
+      if (
+        id === undefined ||
+        accessor === undefined ||
+        typeof accessor.id !== "string" ||
+        typeof accessor.type !== "string" ||
+        operation === undefined ||
+        !Array.isArray(operation.allow) ||
+        !Array.isArray(operation.deny) ||
+        typeof policy.expires_at !== "string"
+      ) {
+        return undefined;
+      }
+
+      return {
+        id,
+        accessor: {
+          id: accessor.id,
+          type: accessor.type
+        },
+        operation: {
+          allow: operation.allow
+            .map((item) =>
+              typeof item === "string"
+                ? item
+                : typeof item === "object" && item !== null && typeof item.id === "string"
+                  ? item.id
+                  : undefined
+            )
+            .filter((item): item is string => item !== undefined),
+          deny: operation.deny
+            .map((item) =>
+              typeof item === "string"
+                ? item
+                : typeof item === "object" && item !== null && typeof item.id === "string"
+                  ? item.id
+                  : undefined
+            )
+            .filter((item): item is string => item !== undefined)
+        },
+        expiresAt: policy.expires_at
+      };
+    })
+    .filter((entry): entry is ResourcePolicyEntry => entry !== undefined);
+}
+
+/**
+ * Builds one canonical authorization policy body for BKN read access.
+ *
+ * @param appId Application account id.
+ * @param entry BKN resource entry.
+ * @returns Policy body sent to the authorization service.
+ */
+function buildKnowledgePolicyBody(
+  appId: string,
+  entry: BknEntry
+): {
+  accessor: { id: string; type: "app" };
+  resource: { id: string; type: string; name: string };
+  operation: { allow: Array<{ id: string }>; deny: never[] };
+  expires_at: string;
+} {
+  return {
+    accessor: {
+      id: appId,
+      type: "app"
+    },
+    resource: {
+      id: entry.id,
+      type: BKN_AUTH_RESOURCE_TYPE,
+      name: entry.name
+    },
+    operation: {
+      allow: BKN_AUTH_OPERATION_IDS.map((id) => ({ id })),
+      deny: []
+    },
+    expires_at: BKN_AUTH_EXPIRES_AT
+  };
+}
+
+/**
+ * Checks whether a resource policy already matches the canonical BKN read-access shape.
+ *
+ * @param policy Existing resource policy entry.
+ * @returns `true` when no update is required.
+ */
+function isKnowledgePolicyUpToDate(policy: ResourcePolicyEntry): boolean {
+  return (
+    policy.expiresAt === BKN_AUTH_EXPIRES_AT &&
+    policy.operation.deny.length === 0 &&
+    BKN_AUTH_OPERATION_IDS.every((operationId) => policy.operation.allow.includes(operationId)) &&
+    policy.operation.allow.length === BKN_AUTH_OPERATION_IDS.length
+  );
 }
 
 /**
@@ -1170,4 +1512,13 @@ async function readChannelForAgent(
   const type: DigitalHumanChannelType =
     channelKey === "dingtalk" ? "dingtalk" : "feishu";
   return { type, appId, appSecret };
+}
+
+function parseUserManagementAppToken(body: string): string {
+  const parsed = JSON.parse(body) as UserManagementAppTokenBody;
+  if (typeof parsed.token !== "string" || parsed.token.trim().length === 0) {
+    throw new HttpError(502, "user-management app token response is invalid");
+  }
+
+  return parsed.token.trim();
 }

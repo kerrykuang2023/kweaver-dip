@@ -4,6 +4,7 @@ export interface AppAccount {
   id: string
   name: string
   credential_type: AppCredentialType
+  has_kweaver_token?: boolean
 }
 
 export interface GetAppAccountsParams {

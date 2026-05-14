@@ -1,4 +1,5 @@
 .claude/
+.codex/
 .env
 .env.local
 
