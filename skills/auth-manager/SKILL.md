@@ -1,6 +1,6 @@
 ---
 name: auth-manager
-version: "1.3.4"
+version: "1.3.5"
 user-invocable: true
 description: >-
   数据权限管理技能：支持资源权限查询与权限申请。
@@ -15,7 +15,7 @@ argument-hint: [权限需求描述，可包含 resource_type/resource_id/resourc
 
 # 数据权限管理
 
-> **渐进式加载**: [核心概念](./core/core.md) → [申请人发现](./references/applicant-discovery.md) → [资源发现](./references/resource-discovery.md) → [部门查询（独立）](./references/department-discovery.md) → [用户组查询（独立）](./references/group-discovery.md) → [用户组成员查询（独立）](./references/group-members-discovery.md) → [应用账户查询（独立）](./references/app-account-discovery.md) → [管理控制台用户搜索（独立）](./references/console-user-search.md) → [用户角色查询（独立）](./references/user-role-discovery.md) → [申请参考](./references/auth-apply.md) → [查询参考](./references/auth-query.md) → [数字员工查询（独立）](./references/digital-human-discovery.md) → [行列规则接口（独立）](./references/data-model-row-column-rules.md)
+> **渐进式加载**: [核心概念](./core/core.md) → [认证与 Token](./references/authentication.md) → [申请人发现](./references/applicant-discovery.md) → [资源发现](./references/resource-discovery.md) → [部门查询（独立）](./references/department-discovery.md) → [用户组查询（独立）](./references/group-discovery.md) → [用户组成员查询（独立）](./references/group-members-discovery.md) → [应用账户查询（独立）](./references/app-account-discovery.md) → [管理控制台用户搜索（独立）](./references/console-user-search.md) → [用户角色查询（独立）](./references/user-role-discovery.md) → [申请参考](./references/auth-apply.md) → [查询参考](./references/auth-query.md) → [数字员工查询（独立）](./references/digital-human-discovery.md) → [行列规则接口（独立）](./references/data-model-row-column-rules.md)
 > **文档指南**: [README.md](./README.md) · **共享约束**: [core/core-constraints.md](./core/core-constraints.md)
 
 本 skill 是权限管理统一入口，负责**意图识别、参数校验、接口路由**；HTTP 字段与示例在 `references/`，枚举清单在 `resources/`。
@@ -85,39 +85,75 @@ argument-hint: [权限需求描述，可包含 resource_type/resource_id/resourc
 
 ## 前置条件
 
-- 可用的 **`Authorization: Bearer <access_token>`**
+- 可用的 **`Authorization: Bearer <access_token>`**（获取与携带方式见 **[references/authentication.md](./references/authentication.md)**）
 - 可访问的 auth-service（如 `http://127.0.0.1:8155`）
 - 请求头 `Content-Type: application/json`
 
-**摘要**：本 skill 仅要求调用时提供有效 `Authorization` 请求头，不包含 token 获取、刷新或登录流程。
+**摘要**：用 **`kweaver call`** 时，可 **`kweaver auth login`** 从磁盘凭据自动带 Token；也可设置 **`KWEAVER_TOKEN` + `KWEAVER_BASE_URL`** 用环境变量静态 Token（CI 常用）。用 **`curl`/Postman/脚本** 时把 Token 放进 **`Authorization: Bearer …`** 或读自定义变量（详见上文链接）。
 
 ## 关键约束
 
 > **详细约束（单一事实来源）**: [core/core-constraints.md](./core/core-constraints.md)
 
-1. **先意图、后请求**：必须先完成「查询 vs 申请」判定与参数校验，再发 HTTP。  
+1. **先意图、后请求**：必须先完成步骤二「独立安全拦截 · 写操作」与「查询 vs 申请」判定及参数校验，再发 HTTP。  
 2. **枚举原值**：`resource_type`、`auth_operations`、`applicant_type` 等与文档及 `enum.go` 一致，禁止同义词。  
 3. **类型匹配**：操作码必须与资源类型可搭配。  
 4. **行列规则**：`data_view_row_column_rule` 的 `row_rules` 须对照 [examples/row-rules.md](./examples/row-rules.md)。  
 5. **申请前先查**：申请分支在提交 `/data-auth/apply` 前，需先按 [references/auth-query.md](./references/auth-query.md) 校验申请人是否已具备目标操作；若已具备则直接返回“无需申请”。  
-6. **全局重试约束**：本技能下所有接口最多 2 次（首次 + 重试一次）。  
-7. **申请重试兜底**：`/data-auth/apply` 触发重试前，必须再做同条件权限预检；若已具备权限则不再重复申请。  
+6. **鉴权失败重试**：所有接口遇到 `401/403/Unauthorized/token expired` 时，必须先刷新 token，再重试原请求 **1 次**。  
+7. **防死循环**：每个接口请求最多 2 次（首次 + 重试一次）；二次失败后立即返回原始错误，不得继续循环。  
 8. **失败处理**：须保留接口原始错误信息，不得假称成功。  
-9. **进度硬约束**：每完成门禁或分支内任一步，须立即输出一次「任务进度清单」；当前步未输出进度前**不得**进入下一步；失败即停，不得将后续步骤标为已完成。
+9. **进度硬约束**：每完成门禁或分支内任一步，须立即输出一次「任务进度清单」；当前步未输出进度前**不得**进入下一步；失败即停，不得将后续步骤标为已完成。  
+10. **写操作与安全拦截**：步骤二（意图识别）内**最先**执行「独立安全拦截 · 写操作」全条（见下文 **§1) 意图识别**）。命中业务数据写操作硬拦截，或敏感初检触发且**未能**满足「治理写操作例外」与放行语义时，须**立即终止**全流程，不得进入查询/申请分支及任何 HTTP；不得代用户生成或解释如何执行 DML、DDL、停机或可类比写指令；触发拦截时不得假称已放行。
 
 ## 门禁机制（必须先执行）
 
-本节步骤一、二在上下文已校验时可跳过**重复执行**，但**不可跳过**进度输出；步骤三起不得省略。
+本节步骤一～三在上下文已校验时可跳过**重复执行**（如 Token 仍有效），但**不可跳过**进度输出；步骤四起不得省略。
 
-### 1) 意图识别 → **步骤一**
+### 0) Token 预检（每次回答前必须执行）→ **步骤一**
+
+- **跳过条件（上下文已校验）**：当前对话上下文中，已有可复核的等价结论（例如前文已成功 `kweaver auth whoami` / `kweaver auth status` 显示 `active` 且未过期）。满足时**不得**重复登录，但必须本步输出进度：**「步骤一（Token 预检）：已跳过（上下文已校验）」**或 **「已校验通过（复用上下文）」**，并**一句**指明依据。  
+- **非跳过**：先执行 `kweaver auth status`。  
+- 若状态为 `active`：继续后续流程。  
+- 若不可用（过期/缺失/401）：按 [`references/authentication.md`](./references/authentication.md) 的“预检与刷新标准流程”先刷新再继续。  
+- 若使用 `KWEAVER_TOKEN` 静态凭据：不支持 refresh 换发，失效时需替换新 token。  
+- 若 Token 缺失或过期且无法刷新：立即停止，提示用户登录或替换 Token。
+
+### 0.1) 接口统一鉴权重试（所有接口）
+
+- 适用于本技能下所有 HTTP 接口（申请、查询、资源发现、申请人发现、数字员工、行列规则 CRUD）。  
+- 若首次调用返回 `401/403/Unauthorized/token expired`：先执行 token 刷新，再按**同参数**重试原请求一次。  
+- 重试后仍失败：立即停止并返回原始错误。  
+- 严禁无上限重试；必须显式维护“已重试一次”状态，防止死循环。
+
+### 1) 意图识别 → **步骤二**
+
+目标：在查询/申请分流前完成安全拦截，并判定流程入口。
+
+- **写操作与安全拦截（必须在本节内最先执行，先于模糊澄清、查询/申请分流及其它任何路由）**  
+  下列为本 skill **独立安全拦截 · 写操作** 规则：在权限治理与行列规则治理域内界定敏感字面初检、治理写操作例外与业务数据写操作硬拦截。  
+  - **独立前置**：写操作与安全拦截为**独立前置规则**；须在**任意**模糊澄清、查询 vs 申请分流及 HTTP 调度**之前**完成拦截判定。  
+  - **检测范围**：对用户本轮**全部表述**进行检测，含 `query`、`context`、补充说明、粘贴的 SQL/命令片段、多轮合并后的当前任务描述。  
+  - **敏感英文关键字**（**大小写不敏感**）：须按**独立英文词**匹配 `\b…\b`（避免 `alternative` 误命中 `alter`），并**额外**将连续写法 `insertinto` 视为命中（不分词）。完整清单——删/破坏/撤销类：`delete`、`drop`、`rm`、`del`、`remove`、`truncate`、`clear`、`purge`、`erase`、`destroy`、`cancel`、`unset`、`discard`、`shutdown`；改类：`update`、`alter`、`modify`、`edit`、`change`、`revise`、`rewrite`、`replace`、`set`、`rename`；增/建/导入类：`insert`、`add`、`create`、`new`、`append`、`import`、`save`。推荐正则（`i` 忽略大小写）：`(?i)(\b(delete|drop|rm|del|remove|truncate|clear|purge|erase|destroy|cancel|unset|discard|shutdown|update|alter|modify|edit|change|revise|rewrite|replace|set|rename|insert|add|create|new|append|import|save)\b|insertinto)`。  
+  - **敏感中文**（**子串命中**用于初检；**不**表示本入口可执行任意删改增或 DDL/停机）：删/清空类：`删除`、`移除`、`清空`、`清空数据`、`清除`、`销毁`、`作废`、`撤销`、`卸掉`、`删掉`、`剔除`；改类：`修改`、`更新`、`编辑`、`变更`、`改动`、`修订`、`改写`、`替换`、`重命名`、`调整`；增/导入类：`新增`、`添加`、`新建`、`插入`、`追加`、`导入`、`创建`、`保存`；DDL/运维与权限类：`建表`、`删表`、`改表`、`授权`、`回收权限`、`索引`、`库表`、`停机`。**说明**：子串命中**不单独**决定拦截；是否与放行语义冲突以**整体治理意图判定**为准。  
+  - **治理写操作例外（意图优先于字面）**：若本轮表述在敏感英文词或敏感中文子串层面触发初检，但**整体可明确归类**为下列**本 skill 治理域**内操作，则**放行**，可进入后续查询/申请分流与 HTTP：  
+    - **权限治理（读）**：查询是否具备权限、能否操作、权限校验、`effect` 判断等 → 查询分支。  
+    - **权限治理（写）**：申请/授权/开通/续期资源操作权限（含 `data_query`、`view_detail`、`rule_apply` 等），走 `/data-auth/apply` → 申请分支。  
+    - **行列规则治理**：对 `data_view_row_column_rule` / `data-view-row-column-rules` 的**规则对象**做创建、更新、删除或列表/详情查询（见 [`references/data-model-row-column-rules.md`](references/data-model-row-column-rules.md)）；整句主体为**规则**而非业务表行记录。  
+    - **发现与组织检索（读）**：资源发现、申请人发现、部门/用户组/应用账户/控制台用户/角色/数字员工等检索。  
+    做意图判定时须排除**明确的**业务数据删改、裸 DML/DDL、停机或破坏性指令主体；若整体意图歧义大到无法可信归类为上述治理域，按「命中后的强制行为」处理，不得放行。**但若命中下条「写操作硬拦截」，不得依据本条放行。**  
+  - **写操作硬拦截（优于治理写操作例外）**：凡用户诉求可归为对**业务数据、业务记录、库表数据行**或等价对象执行 **删除操作** 或 **更新操作**（含同义：删掉/去掉/清除某条记录并不可恢复、就地改写或覆盖记录/字段主体、批量改数、灌数入库等），**一律拦截**，**不适用**「治理写操作例外」；明确要求执行 **`DELETE` / `UPDATE` / `INSERT` / `TRUNCATE` DML** 或可类比写语句的，同等处理；**建表 / 删表 / 改表**（非行列**规则**对象）、**停机**、**回收权限**（本 skill 主流程未提供对应接口时按越界处理）亦按硬拦截。**不因**句中出现「申请」「查询」「授权」「规则」等词而放行上述业务数据写操作。**不触发本条**、仍可经「治理写操作例外」的典型情形：全句仅为权限查询/申请/规则 CRUD/发现检索，且「删除」「更新」仅出现在**规则名、权限操作名、审计对象名**等名词性固定业务用词中（如「删除规则」「更新规则配置」指行列规则对象），且整句**无**执行业务记录删改或裸 DML 的义务或指令语气。  
+  - **放行语义**：用户诉求**整体**可明确归类为上述治理域之一（含经「治理写操作例外」覆盖的敏感字面情形）、且**未**命中「写操作硬拦截」时，方可继续本节后续分流。  
+  - **命中后的强制行为**：当命中「写操作硬拦截」，或敏感初检触发且**未能**满足「治理写操作例外」与放行语义（含：明确要求变更业务数据、裸 DDL/DML、停机、破坏性命令，或整体意图无法可信归类为治理域），**立即停止**门禁与编排，**不得**进入步骤三及查询/申请分支；输出简短**安全拒答**：说明本入口**仅支持权限治理与行列规则治理**，不协助直接变更业务数据、裸 DML/DDL、停机或破坏性命令；业务数据变更请通过数据治理、工单或 DBA/数据负责人流程处理；**不得**提供可执行的删改语句、绕过方式或逐步操作指南。  
+  - **进度**：触发拦截时须输出「**独立安全拦截已触发 · 流程终止**」，不得将后续步骤标记为已完成。经「治理写操作例外」放行时，须输出「**独立安全拦截：敏感字面已识读，治理域意图放行**」后再进入后续模糊澄清与查询/申请分流。触发拦截时不得假称已放行。
 
 - **查询权限**：检查是否有权、是否具备某些操作 → **查询分支**。  
 - **申请权限**：授权、申请、开通 → **申请分支**。  
 - 同轮两者皆有时先澄清顺序，**默认先查后申**。  
 - 仅查阅枚举/文档、不涉及 HTTP 时：在进度中标注 **「阶段：文档查阅」**，可不走查询/申请分支 HTTP。  
-- 诉求不在本 skill 范围（如工商企业问数、纯组织详情而无权限语义）时：在进度中标注 **「阶段：范围外」**，说明边界并停止，不得假走权限接口。
+- 诉求不在本 skill 范围（如工商企业问数、纯组织详情而无权限语义、或命中上文业务数据写操作硬拦截）时：在进度中标注 **「阶段：范围外」**或 **「阶段：安全拦截」**，说明边界并停止，不得假走权限接口。
 
-### 2) 参数校验 → **步骤二**
+### 2) 参数校验 → **步骤三**
 
 - **申请**最小集：`resource_type`、`applicant_type`、`auth_operations`、`expired_at` + (`resource_id` 或 `resource_name`) + (`applicant_id` 或 `applicant_name`/`applicant_account`)。  
 - **查询**最小集：`action` + (`resources` 或 (`resource_name` + `object_type`))。  
@@ -137,37 +173,37 @@ argument-hint: [权限需求描述，可包含 resource_type/resource_id/resourc
 - 若预检结果对目标操作全部 `effect=true`：直接返回“该用户已具备权限，无需重复申请”。  
 - 若存在 `effect=false`：继续调用 `/api/auth-service/v1/data-auth/apply` 发起申请。
 
-### 3) 路由到分支 → **步骤三**
+### 3) 路由到分支 → **步骤四**
 
-- 完成步骤一～二后，根据意图进入 **查询分支** 或 **申请分支**（见下文「子流程衔接」与「任务进度清单」）。  
-- 不得在步骤三之前调用 `POST …/data-resource/operations` 或 `POST …/data-auth/apply`。
+- 完成步骤一～三后，根据意图进入 **查询分支** 或 **申请分支**（见下文「子流程衔接」与「任务进度清单」）。  
+- 不得在步骤四之前调用 `POST …/data-resource/operations` 或 `POST …/data-auth/apply`。
 
 ## 子流程衔接（序号连续）
 
-- 总入口固定执行 **步骤一～三**（意图识别 → 参数校验 → 路由到分支）。  
-- 路由到 **查询分支** 时，继续执行 **步骤 4～8**（见「任务进度清单（阶段：查询）」及 [`references/auth-query.md`](./references/auth-query.md)）。  
-- 路由到 **申请分支** 时，继续执行 **步骤 4～11**（见「任务进度清单（阶段：申请）」及 [`references/auth-apply.md`](./references/auth-apply.md)）。  
-- **动态编号规则**：令 **S** 为进入当前分支前已完成的最后一步编号（通常为 3），分支内全局步号为 **第 S+1 步 至 第 S+N 步**。  
+- 总入口固定执行 **步骤一～四**（Token 预检 → 意图识别 → 参数校验 → 路由到分支）。  
+- 路由到 **查询分支** 时，继续执行 **步骤 5～9**（见「任务进度清单（阶段：查询）」及 [`references/auth-query.md`](./references/auth-query.md)）。  
+- 路由到 **申请分支** 时，继续执行 **步骤 5～12**（见「任务进度清单（阶段：申请）」及 [`references/auth-apply.md`](./references/auth-apply.md)）。  
+- **动态编号规则**：令 **S** 为进入当前分支前已完成的最后一步编号（通常为 4），分支内全局步号为 **第 S+1 步 至 第 S+N 步**。  
 - 子流程内引用「第 N 步」均以该连续编号为准；禁止跳步、并步、倒序。
 
-### 查询分支（步骤 4～8）
+### 查询分支（步骤 5～9）
 
-4. **资源发现（按需）**：缺 `resources[].object_id` 时，按 [references/resource-discovery.md](./references/resource-discovery.md) 检索并回填；多候选须澄清。  
-5. **枚举与类型校验**：核对 `object_type`、`action` 与 [resources/resource.md](resources/resource.md)、[resources/operations.md](resources/operations.md)。  
-6. **构造查询请求体**：按 [references/auth-query.md](./references/auth-query.md) 组装 `resources`、`action`；可选 `subject`。  
-7. **调用权限查询接口**：`POST /api/auth-service/v1/data-resource/operations`；失败即停，保留原始错误。  
-8. **总结交付**：返回各资源 `effect`、最小口径（资源 ID/类型、操作列表、访问者），标注 **流程完成**。
+5. **资源发现（按需）**：缺 `resources[].object_id` 时，按 [references/resource-discovery.md](./references/resource-discovery.md) 检索并回填；多候选须澄清。  
+6. **枚举与类型校验**：核对 `object_type`、`action` 与 [resources/resource.md](resources/resource.md)、[resources/operations.md](resources/operations.md)。  
+7. **构造查询请求体**：按 [references/auth-query.md](./references/auth-query.md) 组装 `resources`、`action`；可选 `subject`。  
+8. **调用权限查询接口**：`POST /api/auth-service/v1/data-resource/operations`；失败即停，保留原始错误。  
+9. **总结交付**：返回各资源 `effect`、最小口径（资源 ID/类型、操作列表、访问者），标注 **流程完成**。
 
-### 申请分支（步骤 4～11）
+### 申请分支（步骤 5～12）
 
-4. **资源发现（按需）**：缺 `resource_id` 时，按 [references/resource-discovery.md](./references/resource-discovery.md) 检索并回填。  
-5. **申请人发现（按需）**：缺 `applicant_id` 时，按 [references/applicant-discovery.md](./references/applicant-discovery.md) 检索并回填。  
-6. **数字员工发现（按需）**：`applicant_type=digital_employee` 且仅有名称时，按 [references/digital-human-discovery.md](./references/digital-human-discovery.md) 确认 ID。  
-7. **行列规则校验（按需）**：`resource_type=data_view_row_column_rule` 时，对照 [examples/row-rules.md](./examples/row-rules.md) 校验 `row_rules` / `resource_attributes`。  
-8. **applicant 存在性校验（按需）**：`applicant_id` 与当前用户不一致时执行（见上文 **2.1**）。  
-9. **申请前权限预检**：按 [references/auth-query.md](./references/auth-query.md) 校验目标操作；全部 `effect=true` 则返回「无需申请」并标注 **流程完成**。  
-10. **构造并调用申请接口**：按 [references/auth-apply.md](./references/auth-apply.md) 组装并 `POST …/data-auth/apply`；失败即停，保留原始错误。  
-11. **总结交付**：返回申请结果（成功/失败、申请单信息或原始错误）、所用资源与操作口径，标注 **流程完成**。
+5. **资源发现（按需）**：缺 `resource_id` 时，按 [references/resource-discovery.md](./references/resource-discovery.md) 检索并回填。  
+6. **申请人发现（按需）**：缺 `applicant_id` 时，按 [references/applicant-discovery.md](./references/applicant-discovery.md) 检索并回填。  
+7. **数字员工发现（按需）**：`applicant_type=digital_employee` 且仅有名称时，按 [references/digital-human-discovery.md](./references/digital-human-discovery.md) 确认 ID。  
+8. **行列规则校验（按需）**：`resource_type=data_view_row_column_rule` 时，对照 [examples/row-rules.md](./examples/row-rules.md) 校验 `row_rules` / `resource_attributes`。  
+9. **applicant 存在性校验（按需）**：`applicant_id` 与当前用户不一致时执行（见上文 **2.1**）。  
+10. **申请前权限预检**：按 [references/auth-query.md](./references/auth-query.md) 校验目标操作；全部 `effect=true` 则返回「无需申请」并标注 **流程完成**。  
+11. **构造并调用申请接口**：按 [references/auth-apply.md](./references/auth-apply.md) 组装并 `POST …/data-auth/apply`；失败即停，保留原始错误。  
+12. **总结交付**：返回申请结果（成功/失败、申请单信息或原始错误）、所用资源与操作口径，标注 **流程完成**。
 
 ## 进度显示规范（必须执行）
 
@@ -177,7 +213,7 @@ argument-hint: [权限需求描述，可包含 resource_type/resource_id/resourc
 - 若当前步骤尚未输出进度，**不得进入下一步**。  
 - 缺步、跳步或步骤失败时，**立即停止**并说明原因；不得将失败后的步骤标为已完成。  
 - 分支结束时须在清单中标注最后一步「已完成」，并追加 **「流程完成」**。  
-- 步骤一复用上下文时，以及进入查询/申请分支后，均继续使用同一模板（更新「已完成 / 待完成 / 进行中」状态）。
+- 步骤一、二复用上下文时，以及进入查询/申请分支后，均继续使用同一模板（更新「已完成 / 待完成 / 进行中」状态）。
 
 推荐模板：
 
@@ -191,20 +227,20 @@ argument-hint: [权限需求描述，可包含 resource_type/resource_id/resourc
 
 ```text
 ## 📋 任务进度清单（阶段：查询）
-- [x] 已完成 · 步骤4（资源发现）
-- [x] 已完成 · 步骤5（枚举与类型校验）
-- [ ] 进行中 · 步骤6（构造查询请求体）
-- [ ] 待完成 · 步骤7（调用权限查询接口）
-- [ ] 待完成 · 步骤8（总结交付）
+- [x] 已完成 · 步骤5（资源发现）
+- [x] 已完成 · 步骤6（枚举与类型校验）
+- [ ] 进行中 · 步骤7（构造查询请求体）
+- [ ] 待完成 · 步骤8（调用权限查询接口）
+- [ ] 待完成 · 步骤9（总结交付）
 ```
 
 ```text
 ## 📋 任务进度清单（阶段：申请）
-- [x] 已完成 · 步骤4（资源发现）
-- [x] 已完成 · 步骤5（申请人发现）
-- [ ] 进行中 · 步骤9（申请前权限预检）
-- [ ] 待完成 · 步骤10（构造并调用申请接口）
-- [ ] 待完成 · 步骤11（总结交付）
+- [x] 已完成 · 步骤5（资源发现）
+- [x] 已完成 · 步骤6（申请人发现）
+- [ ] 进行中 · 步骤10（申请前权限预检）
+- [ ] 待完成 · 步骤11（构造并调用申请接口）
+- [ ] 待完成 · 步骤12（总结交付）
 ```
 
 ## 路由规则
@@ -275,6 +311,7 @@ auth-manager/
 │   ├── core.md                 # 核心概念 (L1)
 │   └── core-constraints.md     # 共享约束（单一事实来源）
 ├── references/                 # HTTP 模板与示例 (L2)
+│   ├── authentication.md       # Token 获取与 Authorization 携带
 │   ├── applicant-discovery.md  # 用户名/账号到 applicant_id 的检索与回填
 │   ├── resource-discovery.md   # 资源名到 resource_id 的检索与回填
 │   ├── department-discovery.md # 部门查询（独立）
@@ -301,6 +338,8 @@ auth-manager/
 用户请求
     │
     ├─ 仅需了解能力与端点 ──▶ core/core.md
+    │
+    ├─ Token / Bearer / kweaver CLI ──▶ references/authentication.md
     │
     ├─ 缺申请人ID（用户名/账号补齐） ──▶ references/applicant-discovery.md
     │
@@ -332,6 +371,7 @@ auth-manager/
 | [README.md](./README.md) | 分层阅读指南 |
 | [core/core.md](./core/core.md) | 核心概念与快速参考 (L1) |
 | [core/core-constraints.md](./core/core-constraints.md) | **共享约束**（与实现对齐） |
+| [references/authentication.md](./references/authentication.md) | **Token 获取**、`Bearer` 与 `kweaver call` 自动注入 |
 | [references/applicant-discovery.md](./references/applicant-discovery.md) | 用户名/账号到 `applicant_id` 的检索与回填 |
 | [references/resource-discovery.md](./references/resource-discovery.md) | 资源名到 `resource_id` 的检索与回填 |
 | [references/department-discovery.md](./references/department-discovery.md) | 部门查询（独立） |
@@ -352,28 +392,29 @@ auth-manager/
 
 ## 📋 任务进度清单（阶段：总控制台）
 
-- [ ] 待完成 · 步骤一（意图识别：查询 vs 申请；同轮双意图时澄清，默认先查后申；范围外/文档查阅须标注阶段）
-- [ ] 待完成 · 步骤二（参数校验：申请/查询最小集；缺参补齐，禁止臆造）
-- [ ] 待完成 · 步骤三（路由到分支并衔接连续编号）
+- [ ] 待完成 · 步骤一（Token 预检；若上下文已校验可跳过重复命令，须仍勾选并注明「已跳过（上下文已校验）」或等价表述）
+- [ ] 待完成 · 步骤二（意图识别：**独立安全拦截 · 写操作（最先）**、查询 vs 申请；同轮双意图时澄清，默认先查后申；范围外/安全拦截/文档查阅须标注阶段）
+- [ ] 待完成 · 步骤三（参数校验：申请/查询最小集；缺参补齐，禁止臆造）
+- [ ] 待完成 · 步骤四（路由到分支并衔接连续编号）
 
 ## 📋 任务进度清单（阶段：查询）
 
-- [ ] 待完成 · 步骤4（资源发现，按需）
-- [ ] 待完成 · 步骤5（枚举与类型校验）
-- [ ] 待完成 · 步骤6（构造查询请求体）
-- [ ] 待完成 · 步骤7（调用权限查询接口）
-- [ ] 待完成 · 步骤8（总结交付）
+- [ ] 待完成 · 步骤5（资源发现，按需）
+- [ ] 待完成 · 步骤6（枚举与类型校验）
+- [ ] 待完成 · 步骤7（构造查询请求体）
+- [ ] 待完成 · 步骤8（调用权限查询接口）
+- [ ] 待完成 · 步骤9（总结交付）
 
 ## 📋 任务进度清单（阶段：申请）
 
-- [ ] 待完成 · 步骤4（资源发现，按需）
-- [ ] 待完成 · 步骤5（申请人发现，按需）
-- [ ] 待完成 · 步骤6（数字员工发现，按需）
-- [ ] 待完成 · 步骤7（行列规则校验，按需）
-- [ ] 待完成 · 步骤8（applicant 存在性校验，按需）
-- [ ] 待完成 · 步骤9（申请前权限预检）
-- [ ] 待完成 · 步骤10（构造并调用申请接口）
-- [ ] 待完成 · 步骤11（总结交付）
+- [ ] 待完成 · 步骤5（资源发现，按需）
+- [ ] 待完成 · 步骤6（申请人发现，按需）
+- [ ] 待完成 · 步骤7（数字员工发现，按需）
+- [ ] 待完成 · 步骤8（行列规则校验，按需）
+- [ ] 待完成 · 步骤9（applicant 存在性校验，按需）
+- [ ] 待完成 · 步骤10（申请前权限预检）
+- [ ] 待完成 · 步骤11（构造并调用申请接口）
+- [ ] 待完成 · 步骤12（总结交付）
 
 ## 典型调用
 
@@ -396,12 +437,12 @@ auth-manager/
 /auth-manager 查询“销售订单明细视图”我是否有 data_query 权限
 
 技能执行（对应「阶段：查询」进度清单）：
-1) 步骤一～三：意图=查询 → 参数校验 → 路由查询分支
-2) 步骤4：发现缺少 resources[].object_id，触发资源发现
+1) 步骤一～四：Token 预检 → 意图=查询 → 参数校验 → 路由查询分支
+2) 步骤5：发现缺少 resources[].object_id，触发资源发现
 3) 调用 GET /api/mdl-data-model/v1/data-views?name=销售订单明细视图
 4) 若仅 1 个候选：回填 object_id，构造 resources=[{object_id, object_type=data_view}]
-5) 步骤5～7：枚举校验 → 构造请求体 → POST …/data-resource/operations，action=["data_query"]
-6) 步骤8：返回 effect=true/false，标注流程完成
+5) 步骤6～8：枚举校验 → 构造请求体 → POST …/data-resource/operations，action=["data_query"]
+6) 步骤9：返回 effect=true/false，标注流程完成
 ```
 
 ## 示例：按用户名补齐用户ID后授权
@@ -411,10 +452,10 @@ auth-manager/
 /auth-manager 给账号 zhangsan 开通“销售订单明细视图”的 data_query 权限
 
 技能执行（对应「阶段：申请」进度清单）：
-1) 步骤一～三：意图=申请 → 参数校验 → 路由申请分支
-2) 步骤4：发现缺少 resource_id，触发资源发现并回填 resource_id
-3) 步骤5：发现缺少 applicant_id，调用 GET /api/user-management/v1/account-match?account=zhangsan
+1) 步骤一～四：Token 预检 → 意图=申请 → 参数校验 → 路由申请分支
+2) 步骤5：发现缺少 resource_id，触发资源发现并回填 resource_id
+3) 步骤6：发现缺少 applicant_id，调用 GET /api/user-management/v1/account-match?account=zhangsan
 4) 回填 applicant_id 与 applicant_name（若缺失）
-5) 步骤9：申请前权限预检（subject=applicant）
-6) 步骤10～11：构造 apply 体 → POST …/data-auth/apply → 返回申请结果，标注流程完成
+5) 步骤10：申请前权限预检（subject=applicant）
+6) 步骤11～12：构造 apply 体 → POST …/data-auth/apply → 返回申请结果，标注流程完成
 ```

@@ -15,6 +15,7 @@
 | L1 | [SKILL.md](./SKILL.md) | **主入口** — 入参、门禁、路由、**任务进度清单（todolist）**、渐进式加载指南 |
 | L1 | [core/core.md](./core/core.md) | 核心概念、端点与环境速览 |
 | L1 | [core/core-constraints.md](./core/core-constraints.md) | **共享约束**（单一事实来源） |
+| L2 | [references/authentication.md](./references/authentication.md) | **Token 获取**、`Authorization: Bearer`、`kweaver call` 自动注入 |
 | L2 | [references/applicant-discovery.md](./references/applicant-discovery.md) | 缺 `applicant_id` 时按用户名/账号检索候选并回填 |
 | L2 | [references/resource-discovery.md](./references/resource-discovery.md) | 缺 `resource_id` 时按名称检索候选并回填 |
 | L2 | [references/department-discovery.md](./references/department-discovery.md) | 部门查询：按成员可见范围列举部门 |
@@ -40,14 +41,15 @@
 4. **申请人/资源发现** — 支持缺 `applicant_id`、缺 `resource_id` 的前置检索回填。
 5. **数字员工查询（独立）** — 支持数字员工列表与详情检索。
 6. **行列规则接口（独立）** — 提供 `data_model` 视图行列规则增删改查索引。
-7. **统一失败重试** — 所有接口最多重试一次，避免死循环。
-8. **管理控制台用户搜索** — 明确 `role` 必填与角色范围差异，支持全量和按部门检索用户。
-9. **用户角色查询** — 明确按用户查角色与按角色查成员两类接口及参数约束。
-10. **组织对象检索** — 支持部门、用户组、组成员、应用账户查询，便于补齐申请人与上下文。
+7. **Token 预检与刷新** — 每次回答前执行 `kweaver auth status`，失效时先刷新再继续。
+8. **统一鉴权重试** — 所有接口命中鉴权错误后刷新 token 并仅重试一次，避免死循环。
+9. **管理控制台用户搜索** — 明确 `role` 必填与角色范围差异，支持全量和按部门检索用户。
+10. **用户角色查询** — 明确按用户查角色与按角色查成员两类接口及参数约束。
+11. **组织对象检索** — 支持部门、用户组、组成员、应用账户查询，便于补齐申请人与上下文。
 
 ## 任务进度清单（todolist）
 
-与 `smart-data-analysis` 对齐：总入口 **步骤一～三**（`阶段：总控制台`），查询分支 **步骤 4～8**（`阶段：查询`），申请分支 **步骤 4～11**（`阶段：申请`）。每完成一步须立即输出进度，分支结束标注 **流程完成**。模板见 [SKILL.md](./SKILL.md)「进度显示规范」；子流程细则见 [references/auth-query.md](./references/auth-query.md)、[references/auth-apply.md](./references/auth-apply.md)。
+总入口 **步骤一～四**（`阶段：总控制台`），查询分支 **步骤 5～9**（`阶段：查询`），申请分支 **步骤 5～12**（`阶段：申请`）。每完成一步须立即输出进度，分支结束标注 **流程完成**。模板见 [SKILL.md](./SKILL.md)「进度显示规范」；子流程细则见 [references/auth-query.md](./references/auth-query.md)、[references/auth-apply.md](./references/auth-apply.md)。
 
 ## 设计说明
 
@@ -62,6 +64,7 @@
 | [SKILL.md](./SKILL.md) | **主入口** |
 | [core/core.md](./core/core.md) | 核心概念 (L1) |
 | [core/core-constraints.md](./core/core-constraints.md) | 共享约束 |
+| [references/authentication.md](./references/authentication.md) | Token 与请求头 |
 | [references/applicant-discovery.md](./references/applicant-discovery.md) | 申请人检索与 ID 回填 |
 | [references/resource-discovery.md](./references/resource-discovery.md) | 资源检索与 ID 回填 |
 | [references/department-discovery.md](./references/department-discovery.md) | 部门查询（独立） |

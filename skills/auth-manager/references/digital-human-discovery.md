@@ -68,7 +68,7 @@ curl --location --request GET 'http://127.0.0.1:8155/api/dip-studio/v1/digital-h
   "creature": "销售顾问",
   "icon_id": "assistant-blue",
   "soul": "你是企业销售分析数字员工",
-  "skills": ["kweaver-core", "smart-data-analysis"],
+  "skills": ["kweaver-core", "auth-manager"],
   "bkn": [
     {
       "name": "销售知识网络",
