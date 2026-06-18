@@ -1,7 +1,7 @@
 apiVersion: deploy.kweaver.ai/v1alpha1
 kind: VersionSet
 product: isf
-version: 0.8.0
+version: 0.7.0
 source:
   helmRepoName: kweaver
   helmRepoUrl: https://kweaver-ai.github.io/helm-repo/
